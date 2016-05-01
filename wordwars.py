@@ -132,6 +132,14 @@ class Game(object):
             score = self.letterValue[letter]
         return score
 
+    def lettersInBag(self, player):
+        list = []
+        bag = self.letters[player]
+        for letter in bag:
+            for i in range(bag[letter]):
+                list.append(letter)
+        return list
+
 
 games = {}
 
@@ -143,12 +151,6 @@ class WordWars():
         games[id] = game
         return id
     
-    def direction(self, across):
-        if across:
-            return 'across'
-        else:
-            return 'down'
-
     def playWord(self, id, user, x, y, across, word):
         game = games[id]
         if game.whoseTurn() != user:
@@ -160,6 +162,9 @@ class WordWars():
             raise ValueError('{} does not have needed letters: {}.'.format(user, lettersToPlay))
         score = game.play(user, x, y, across, word)
         self.showBoard(id)
+        nextPlayer = game.whoseTurn()
+        print('{} plays next with letters:'.format(nextPlayer))
+        print(game.lettersInBag(nextPlayer))
         return 'player {} gets {} points for the word {}'.format(user, score, word)
 
     def skipTurn(self, id, user):
