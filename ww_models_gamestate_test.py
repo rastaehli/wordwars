@@ -10,13 +10,13 @@ class Test():
       print('passed test: {}'.format(description))
 
   def testShortGame(self):
-    joe = User('joe', 'joe@gmail.com')
-    steve = User('steve', 'steve@gmail.com')
+    joe = User.create('joe', 'joe@gmail.com')
+    steve = User.create('steve', 'steve@gmail.com')
     v = PrintView()
 
     users = [joe, steve]
 
-    game = GameState(users)
+    game = GameState.create(users)
     for p in game.players:
       p.letters = LetterBag.fromString('catgegae')
     game.start()

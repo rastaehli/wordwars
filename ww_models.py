@@ -9,39 +9,40 @@ classes they can include methods (such as 'to_form' and 'new_game')."""
     - call r.save(e) to save changes made to e (raises an error if r has not been registered)
 """
 
-# import sys
-# sys.path.insert(1, '/usr/local/google_appengine')
-# sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
+import sys
+sys.path.insert(1, '/usr/local/google_appengine')
+sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 
-# from google.appengine.ext import ndb
+from google.appengine.ext import ndb
 from random import randint
 
-# class User(ndb.Model):
-class User():
+class User(ndb.Model):
     # User may be a player in many games via one PlayerState for each GameState
-    # name = ndb.StringProperty(required=True)
-    # email = ndb.StringProperty()
+    name = ndb.StringProperty(required=True)
+    email = ndb.StringProperty()
 
-    def __init__(self, name, email):
-        self.name = name
-        self.email = email
-        self.id = None
+    @classmethod
+    def create(cls, name, email):
+        user = cls()
+        user.name = name
+        user.email = email
+        return user 
 
     def identity(self):
         return self.email
 
-# # apply Repository pattern to encapsulate details of persistence
-# class UserRepository():
+# apply Repository pattern to encapsulate details of persistence
+class UserRepository():
 
-#     def register(user):
-#         user.put()
-#         return user
+    def register(user):
+        user.put()
+        return user
 
-#     def id(user):
-#         return user.key.urlsafe()
+    def id(user):
+        return user.key.urlsafe()
 
-#     def findById(id):
-#         return get_by_urlsafe(id, User)
+    def findById(id):
+        return get_by_urlsafe(id, User)
 
 
 # a few declarations to support WordWars game logic
@@ -59,33 +60,35 @@ def duplicates(l):
     return 10/letterValue[l]
 
 
-# class GameState(ndb.Model):
-class GameState():
-    #a GameState may have many players state
-    # bagOfLetters = ndb.StringProperty(required=True)
-    # boardWidth = ndb.IntegerProperty(required=True)
-    # boardHeight = ndb.IntegerProperty(required=True)
-    # boardContent = ndb.StringProperty(required=True)
-    # consecutivePasses = ndb.IntegerProperty(required=True)
-    # createdTime = ndb.DateTimeProperty(auto_now_add=True)
-    # turn = ndb.IntegerProperty(required=True)
+class GameState(ndb.Model):
+    # a GameState is referenced by PlayerState for each player
+    letters = ndb.StringProperty(required=True)
+    boardWidth = ndb.IntegerProperty(required=True)
+    boardHeight = ndb.IntegerProperty(required=True)
+    board = ndb.StringProperty(required=True)
+    consecutivePasses = ndb.IntegerProperty(required=True)
+    createdTime = ndb.DateTimeProperty(auto_now_add=True)
+    turn = ndb.IntegerProperty(required=True)
 
-    def __init__(self, users):
-        self.turn = -1  # negative value until start() called
-        self.bagOfLetters = LetterBag()
+    @classmethod
+    def create(cls, users):
+        game = cls()    # get new ndb.Model instance
+        game.turn = -1  # negative value until start() called
+        game.bagOfLetters = LetterBag()
         for l in alphabet:
             for i in range(duplicates(l)):
-                self.bagOfLetters.add(l)
-        self.width = 17
-        self.height = 17
-        self.boardContent = []
-        for x in range(self.width):
-            for y in range(self.height):
-                self.boardContent.append('_')    # init board with underscores
-        self.players = []
+                game.bagOfLetters.add(l)
+        game.width = 17
+        game.height = 17
+        game.boardContent = []
+        for x in range(game.width):
+            for y in range(game.height):
+                game.boardContent.append('_')    # init board with underscores
+        game.players = []
         for u in users:
-            self.addPlayer(u)
-        self.consecutivePasses = 0
+            game.addPlayer(u)
+        game.consecutivePasses = 0
+        return game
 
     def addPlayer(self, player):
         if self.started():
@@ -93,7 +96,7 @@ class GameState():
         # okay to add players until started with first turn
         playerSequence = len(self.players)  # zero for first player
         lettersForPlayer = self.bagOfLetters.removeRandom(7) # init with 7 from game bag
-        pState = PlayerState(self, player, playerSequence, lettersForPlayer)
+        pState = PlayerState.create(self, player, playerSequence, lettersForPlayer)
         self.players.append(pState)
 
     def start(self):
@@ -177,54 +180,56 @@ class GameState():
         return leader
 
 
-# # apply Repository pattern to encapsulate details of persistence
-# class GameStateRepository():
+# apply Repository pattern to encapsulate details of persistence
+class GameStateRepository():
 
-#     # persist gameState and its parts
-#     def register(gameState):
-#         gameState.put()
-#         for p in gameState.players:
-#             p.put
-#         return gameState
+    # persist gameState and its parts
+    def register(gameState):
+        gameState.put()
+        for p in gameState.players:
+            p.put
+        return gameState
 
-#     def id(gameState):
-#         return gameState.key.urlsafe()
+    def id(gameState):
+        return gameState.key.urlsafe()
 
-#     def findById(id):
-#         return get_by_urlsafe(id, GameState)
+    def findById(id):
+        return get_by_urlsafe(id, GameState)
 
 # part of a gameState that describes player
 # class PlayerState(ndb.Model):
 class PlayerState():
-    # game = ndb.KeyProperty(required=True, kind='Game')
-    # player = ndb.KeyProperty(required=True, kind='User')
-    # turnNumber = ndb.IntegerProperty(required=True)
-    # letters = ndb.StringProperty(required=True)
-    # score = ndb.IntegerProperty(required=True)
+    game = ndb.KeyProperty(required=True, kind='Game')
+    player = ndb.KeyProperty(required=True, kind='User')
+    turnNumber = ndb.IntegerProperty(required=True)
+    letters = ndb.StringProperty(required=True)
+    score = ndb.IntegerProperty(required=True)
 
-    def __init__(self, game, user, turnNumber, letters):
-        self.game = game
-        self.player = user
-        self.turnNumber = turnNumber
-        self.letters = letters
-        self.score = 0
+    @classmethod
+    def create(cls, game, user, turnNumber, bag):
+        state = cls()       # new instance of class
+        state.game = game
+        state.player = user
+        state.turnNumber = turnNumber
+        state.bag = bag
+        state.score = 0
+        return state
 
+# apply Repository pattern to encapsulate details of persistence
+class PlayerStateRepository():
 
-# # apply Repository pattern to encapsulate details of persistence
-# class PlayerStateRepository():
+    # persist playerState
+    def register(playerState):
+        playerState.put()
+        return playerState
 
-#     # persist playerState
-#     def register(playerState):
-#         playerState.put()
-#         return playerState
+    def id(playerState):
+        return playerState.key.urlsafe()
 
-#     def id(playerState):
-#         return playerState.key.urlsafe()
+    def findById(id):
+        return get_by_urlsafe(id, PlayerState)
 
-#     def findById(id):
-#         return get_by_urlsafe(id, PlayerState)
-
-# # Store count of letters held.
+# Store count of letters held.
 class LetterBag():
 
     def __init__(self):
