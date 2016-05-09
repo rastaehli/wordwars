@@ -63,8 +63,8 @@ def duplicates(l):
 class GameState(ndb.Model):
     # a GameState is referenced by PlayerState for each player
     letters = ndb.StringProperty(required=True)
-    boardWidth = ndb.IntegerProperty(required=True)
-    boardHeight = ndb.IntegerProperty(required=True)
+    width = ndb.IntegerProperty(required=True)
+    height = ndb.IntegerProperty(required=True)
     board = ndb.StringProperty(required=True)
     consecutivePasses = ndb.IntegerProperty(required=True)
     createdTime = ndb.DateTimeProperty(auto_now_add=True)
@@ -184,17 +184,22 @@ class GameState(ndb.Model):
 class GameStateRepository():
 
     # persist gameState and its parts
-    def register(gameState):
+    def register(self, gameState):
+        gameState.letters = gameState.bagOfLetters.asString()
+        gameState.board = ''.join(gameState.boardContent)
         gameState.put()
         for p in gameState.players:
+            p.letters = p.bag.asString()
             p.put
         return gameState
 
-    def id(gameState):
+    def id(self, gameState):
         return gameState.key.urlsafe()
 
-    def findById(id):
-        return get_by_urlsafe(id, GameState)
+    def findById(self, id):
+        game = get_by_urlsafe(id, GameState)
+        game.bagOfLetters = LetterBag.fromString(game.letters)
+        game.boardContent = list(game.board)
 
 # part of a gameState that describes player
 # class PlayerState(ndb.Model):
@@ -219,15 +224,18 @@ class PlayerState():
 class PlayerStateRepository():
 
     # persist playerState
-    def register(playerState):
+    def register(self, playerState):
+        playerState.letters = playerState.bag.asString()    # set persistent field from transient state
         playerState.put()
         return playerState
 
-    def id(playerState):
+    def id(self, playerState):
         return playerState.key.urlsafe()
 
-    def findById(id):
-        return get_by_urlsafe(id, PlayerState)
+    def findById(self, id):
+        state = get_by_urlsafe(id, PlayerState)
+        state.bag = LetterBag.fromString(state.letters)     # restore transient field from persistent value
+        return state
 
 # Store count of letters held.
 class LetterBag():
