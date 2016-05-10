@@ -6,14 +6,13 @@ from ww_models import User, GameState, PlayerState
 class PrintView(object):
 
 	def showGameState(self, gameState):
-		board = gameState.boardContent
 		print("Board:")
 		for y in range(gameState.height):
 			start = y * gameState.width
 			end = start + gameState.width
-			print(gameState.boardContent[start:end])
+			print(gameState.board[start:end])
 		for p in gameState.players:
-			print("Player {} has score {} and letters '{}'".format(p.player.name, p.score, p.letters.asString()))
+			print("Player {} has score {} and letters '{}'".format(p.player.name, p.score, p.bag.asString()))
 		if gameState.gameOver():
 			print("Game over.  {} is the winner.".format(gameState.leader().player.name))
 		else:

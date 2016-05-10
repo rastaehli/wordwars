@@ -15,6 +15,7 @@ sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 
 from google.appengine.ext import ndb
 from random import randint
+from utils import get_by_urlsafe
 
 class User(ndb.Model):
     # User may be a player in many games via one PlayerState for each GameState
@@ -34,14 +35,19 @@ class User(ndb.Model):
 # apply Repository pattern to encapsulate details of persistence
 class UserRepository():
 
-    def register(user):
+    def register(self, user):
+        if user.key == None:
+            user.put()
+        return user
+
+    def update(self, user):
         user.put()
         return user
 
-    def id(user):
+    def id(self, user):
         return user.key.urlsafe()
 
-    def findById(id):
+    def findById(self, id):
         return get_by_urlsafe(id, User)
 
 
@@ -148,7 +154,7 @@ class GameState(ndb.Model):
     def addLetterToBoard(self, playerState, x, y, letter):
         if self.letter(x,y) == '_':
             # print('removing {} from {}'.format(letter,playerState.letters.asString()))
-            playerState.letters.remove(letter)  # raises error if not there
+            playerState.bag.remove(letter)  # raises error if not there
             self.setBoardContent(x,y,letter)
         playerState.score = playerState.score + letterValue[letter]     # accumulate score
        
@@ -189,8 +195,18 @@ class GameStateRepository():
         gameState.board = ''.join(gameState.boardContent)
         gameState.put()
         for p in gameState.players:
-            p.letters = p.bag.asString()
-            p.put
+            p.gameKey = gameState.key
+            PlayerStateRepository().register(p)
+        return gameState
+
+    # persist gameState and its parts
+    def update(self, gameState):
+        gameState.letters = gameState.bagOfLetters.asString()
+        gameState.board = ''.join(gameState.boardContent)
+        gameState.put()
+        for p in gameState.players:
+            p.gameKey = gameState.key
+            PlayerStateRepository().update(p)
         return gameState
 
     def id(self, gameState):
@@ -199,13 +215,14 @@ class GameStateRepository():
     def findById(self, id):
         game = get_by_urlsafe(id, GameState)
         game.bagOfLetters = LetterBag.fromString(game.letters)
-        game.boardContent = list(game.board)
+        game.boardContent = list(game.board)    # easier to access content as a list
+        game.players = PlayerStateRepository().findByGame(game.key)
+        return game
 
 # part of a gameState that describes player
-# class PlayerState(ndb.Model):
-class PlayerState():
-    game = ndb.KeyProperty(required=True, kind='Game')
-    player = ndb.KeyProperty(required=True, kind='User')
+class PlayerState(ndb.Model):
+    gameKey = ndb.KeyProperty(required=True, kind='GameState')
+    userKey = ndb.KeyProperty(required=True, kind='User')
     turnNumber = ndb.IntegerProperty(required=True)
     letters = ndb.StringProperty(required=True)
     score = ndb.IntegerProperty(required=True)
@@ -213,7 +230,6 @@ class PlayerState():
     @classmethod
     def create(cls, game, user, turnNumber, bag):
         state = cls()       # new instance of class
-        state.game = game
         state.player = user
         state.turnNumber = turnNumber
         state.bag = bag
@@ -224,18 +240,32 @@ class PlayerState():
 class PlayerStateRepository():
 
     # persist playerState
-    def register(self, playerState):
-        playerState.letters = playerState.bag.asString()    # set persistent field from transient state
-        playerState.put()
-        return playerState
+    def register(self, p):
+        UserRepository().register(p.player)
+        p.userKey = p.player.key        # set persistent field from transient state
+        p.letters = p.bag.asString()    # set persistent field from transient state
+        p.put()
+        return p
 
-    def id(self, playerState):
-        return playerState.key.urlsafe()
+    # update playerState
+    def update(self, p):
+        UserRepository().update(p.player)
+        p.userKey = p.player.key        # set persistent field from transient state
+        p.letters = p.bag.asString()    # set persistent field from transient state
+        p.put()
+        return p
+
+    def id(self, p):
+        return p.key.urlsafe()
 
     def findById(self, id):
-        state = get_by_urlsafe(id, PlayerState)
-        state.bag = LetterBag.fromString(state.letters)     # restore transient field from persistent value
-        return state
+        p = get_by_urlsafe(id, PlayerState)
+        p.player = get(p.userKey)                   # restore transient from persistent value
+        p.bag = LetterBag.fromString(p.letters)     # restore transient from persistent value
+        return p
+
+    def findByGame(self, aGameKey):
+        return PlayerState.query(PlayerState.gameKey==aGameKey).fetch(10)
 
 # Store count of letters held.
 class LetterBag():
