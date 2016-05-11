@@ -50,6 +50,8 @@ class UserRepository():
     def findById(self, id):
         return get_by_urlsafe(id, User)
 
+    def findByName(self, name):
+        return User.query(User.name == name).get()
 
 # a few declarations to support WordWars game logic
 
@@ -115,6 +117,7 @@ class GameState(ndb.Model):
     def nextPlayer(self):
         for p in self.players:
             if p.turnNumber == self.turn:
+                print("next player is {}".format(p.player.name))
                 return p
         return None
 
@@ -216,6 +219,7 @@ class GameStateRepository():
         game = get_by_urlsafe(id, GameState)
         game.bagOfLetters = LetterBag.fromString(game.letters)
         game.boardContent = list(game.board)    # easier to access content as a list
+        print('calling PlayerStateRepository.findByGame')
         game.players = PlayerStateRepository().findByGame(game.key)
         return game
 
@@ -258,14 +262,20 @@ class PlayerStateRepository():
     def id(self, p):
         return p.key.urlsafe()
 
+    def restoreTransients(self, state):
+        state.player = state.userKey.get()
+        state.bag = LetterBag.fromString(state.letters)
+        return state
+
     def findById(self, id):
         p = get_by_urlsafe(id, PlayerState)
-        p.player = get(p.userKey)                   # restore transient from persistent value
-        p.bag = LetterBag.fromString(p.letters)     # restore transient from persistent value
-        return p
+        return self.restoreTransients(p)
 
     def findByGame(self, aGameKey):
-        return PlayerState.query(PlayerState.gameKey==aGameKey).fetch(10)
+        list =  PlayerState.query(PlayerState.gameKey==aGameKey).fetch(10)  # arbitrary limit 10 per game
+        for p in list:
+            self.restoreTransients(p)
+        return list
 
 # Store count of letters held.
 class LetterBag():
