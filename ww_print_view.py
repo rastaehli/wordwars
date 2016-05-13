@@ -7,10 +7,11 @@ class PrintView(object):
 
 	def showGameState(self, gameState):
 		print("Board:")
+		boardString = ''.join(gameState.boardContent)
 		for y in range(gameState.height):
 			start = y * gameState.width
 			end = start + gameState.width
-			print(gameState.board[start:end])
+			print(boardString[start:end])
 		for p in gameState.players:
 			print("Player {} has score {} and letters '{}'".format(p.player.name, p.score, p.bag.asString()))
 		if gameState.gameOver():

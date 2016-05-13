@@ -194,18 +194,26 @@ class GameStateRepository():
 
     # persist gameState and its parts
     def register(self, gameState):
-        gameState.letters = gameState.bagOfLetters.asString()
-        gameState.board = ''.join(gameState.boardContent)
+        self.setPersistents(gameState)
         gameState.put()
         for p in gameState.players:
             p.gameKey = gameState.key
             PlayerStateRepository().register(p)
         return gameState
 
+    def setPersistents(self, state):
+        state.letters = state.bagOfLetters.asString()  # set persistent field from transient state
+        state.board = ''.join(state.boardContent)      # set persistent field from transient state
+        return state
+
+    def restoreTransients(self, state):
+        state.bagOfLetters = LetterBag.fromString(state.letters)
+        state.boardContent = list(state.board)    # easier to access content as a list
+        return state
+
     # persist gameState and its parts
     def update(self, gameState):
-        gameState.letters = gameState.bagOfLetters.asString()
-        gameState.board = ''.join(gameState.boardContent)
+        self.setPersistents(gameState)
         gameState.put()
         for p in gameState.players:
             p.gameKey = gameState.key
@@ -217,9 +225,7 @@ class GameStateRepository():
 
     def findById(self, id):
         game = get_by_urlsafe(id, GameState)
-        game.bagOfLetters = LetterBag.fromString(game.letters)
-        game.boardContent = list(game.board)    # easier to access content as a list
-        print('calling PlayerStateRepository.findByGame')
+        self.restoreTransients(game)
         game.players = PlayerStateRepository().findByGame(game.key)
         return game
 
@@ -246,21 +252,24 @@ class PlayerStateRepository():
     # persist playerState
     def register(self, p):
         UserRepository().register(p.player)
-        p.userKey = p.player.key        # set persistent field from transient state
-        p.letters = p.bag.asString()    # set persistent field from transient state
+        self.setPersistents(p)
         p.put()
         return p
 
     # update playerState
     def update(self, p):
         UserRepository().update(p.player)
-        p.userKey = p.player.key        # set persistent field from transient state
-        p.letters = p.bag.asString()    # set persistent field from transient state
+        self.setPersistents(p)
         p.put()
         return p
 
     def id(self, p):
         return p.key.urlsafe()
+
+    def setPersistents(self, state):
+        state.userKey = state.player.key        # set persistent field from transient state
+        state.letters = state.bag.asString()    # set persistent field from transient state
+        return state
 
     def restoreTransients(self, state):
         state.player = state.userKey.get()

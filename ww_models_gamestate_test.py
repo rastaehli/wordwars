@@ -18,7 +18,7 @@ class Test():
 
     game = GameState.create(users)
     for p in game.players:
-      p.letters = LetterBag.fromString('catgegae')
+      p.bag = LetterBag.fromString('catgegae')
     game.start()
     self.assertTrue(game.leader().score == 0, "leader score==0")
  

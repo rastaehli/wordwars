@@ -12,6 +12,9 @@ class StringMessage(messages.Message):
     """StringMessage-- outbound (single) string message"""
     message = messages.StringField(1, required=True)
 
+class StringList(messages.Message):
+    message = messages.StringField(1, repeated=True)
+
 class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
@@ -28,3 +31,6 @@ class MakeMoveForm(messages.Message):
     across = messages.BooleanField(3, required=True)
     word = messages.StringField(4, required=True)
 
+class IdForm(messages.Message):
+    """for outbound model identity"""
+    urlsafe_key = messages.StringField(1, required=True)
