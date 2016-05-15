@@ -27,15 +27,10 @@ USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
 ALL_USERS_REQUEST = endpoints.ResourceContainer()
 USER_GAMES_REQUEST = endpoints.ResourceContainer()
 
-@endpoints.api(name='word_wars_api', version='v1')
+@endpoints.api(name='word_wars_api', version='v1',
+    allowed_client_ids=['wordwars-1311', endpoints.API_EXPLORER_CLIENT_ID])
+    # grant access to ourselves and google's api_explorer also.
 class WordWarsApi(remote.Service):
-
-    # # def api_info():
-    # #     return {'name': 'WordWarsApi', 'version': 'v1'}
-    # api_info = {'name': 'WordWarsApi', 'version': 'v1'}
-
-    # # def __init__(self):
-    # #     self.api_info = 'hello world'
 
     @endpoints.method(request_message=USER_REQUEST,
                       response_message=StringMessage,
@@ -70,7 +65,7 @@ class WordWarsApi(remote.Service):
         """Creates new game with no users"""
         users = UserRepository()
         games = GameStateRepository()
-        game = GameState.create([])
+        game = GameState.create()
         games.register(game)  # important to define "board" and other persistent variables returned below
         # TODO: JSON response
         next = game.nextPlayer()
@@ -114,7 +109,7 @@ class WordWarsApi(remote.Service):
                       response_message=StringMessage,
                       path='game/{id}/add_user',
                       name='add_user',
-                      http_method='POST')
+                      http_method='PUT')
     def add_user(self, request):
         games = GameStateRepository()
         game = gameById(games,request.id)
@@ -128,7 +123,7 @@ class WordWarsApi(remote.Service):
                       response_message=StringMessage,
                       path='game/{id}',
                       name='start_game',
-                      http_method='POST')
+                      http_method='PUT')
     def start_game(self, request):
         games = GameStateRepository()
         game = gameById(games,request.id)
@@ -136,26 +131,30 @@ class WordWarsApi(remote.Service):
         games.update(game)
         return nextPlayerInfo(game)
 
-    # @endpoints.method(request_message=MAKE_MOVE_REQUEST,
-    #                   response_message=GameForm,
-    #                   path='game/{gid}',
-    #                   name='make_move',
-    #                   http_method='PUT')
-    # def make_move(self, request):
-    #     games = GameStateRepository()
-    #     view = PrintView()
-    # 	users = UserRepository()
-    #     """Return the current game state."""
-    #     game = gameById(games,request.gid)
-    #     user = users.getByName(request.user_name)
-    #     if game.gameOver():
-    #         return StringMessage(message='Game already over!')
-    #     scoreBefore = game.scoreForUser(user)
-    #     game.playWord(user, request.x, request.y, request.across, request.word)
-    #     scoreAfter = game.scoreForUser(user)
-    #     games.update(game)
-    #     # TODO: JSON response
-    #     return StringMessage(message='you added {} points!'.format(scoreAfter - scoreBefore))
+    def scoreInfo(before, total):
+        playScore = total - before
+        if playScore > 5:
+            return StringMessage(message='Good job!  You added {} for a total score of {}.'.format(playScore, total))
+        else:
+            return StringMessage(message='You added {} for a total score of {}.'.format(playScore, total))
+
+    @endpoints.method(request_message=MAKE_MOVE_REQUEST,
+                      response_message=StringMessage,
+                      path='game/{id}',
+                      name='make_move',
+                      http_method='PUT')
+    def make_move(self, request):
+        games = GameStateRepository()
+    	users = UserRepository()
+        game = gameById(games,request.id)
+        user = users.getByName(request.user_name)
+        if game.gameOver():
+            return StringMessage(message='Game already over!')
+        scoreBefore = game.scoreForUser(user)
+        game.playWord(user, request.x, request.y, request.across, request.word)
+        scoreAfter = game.scoreForUser(user)
+        games.update(game)
+        return scoreInfo(scoreBefore, scoreAfter)
 
 
 api = endpoints.api_server([WordWarsApi])

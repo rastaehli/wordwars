@@ -79,13 +79,10 @@ class GameState(ndb.Model):
     turn = ndb.IntegerProperty(required=True)
 
     @classmethod
-    def create(cls, users):
+    def create(cls):
         game = cls()    # get new ndb.Model instance
         game.turn = -1  # negative value until start() called
-        game.bagOfLetters = LetterBag()
-        for l in alphabet:
-            for i in range(duplicates(l)):
-                game.bagOfLetters.add(l)
+        game.bagOfLetters = LetterBag.standardSet()
         game.width = 17
         game.height = 17
         game.boardContent = []
@@ -93,18 +90,16 @@ class GameState(ndb.Model):
             for y in range(game.height):
                 game.boardContent.append('_')    # init board with underscores
         game.players = []
-        for u in users:
-            game.addPlayer(u)
         game.consecutivePasses = 0
         return game
 
-    def addPlayer(self, player):
+    def addPlayer(self, user):
         if self.started():
             raise ValueError('Cannot add player to game in progress.')
         # okay to add players until started with first turn
         playerSequence = len(self.players)  # zero for first player
         lettersForPlayer = self.bagOfLetters.removeRandom(7) # init with 7 from game bag
-        pState = PlayerState.create(self, player, playerSequence, lettersForPlayer)
+        pState = PlayerState.create(self, user, playerSequence, lettersForPlayer)
         self.players.append(pState)
 
     def start(self):
@@ -117,7 +112,6 @@ class GameState(ndb.Model):
     def nextPlayer(self):
         for p in self.players:
             if p.turnNumber == self.turn:
-                print("next player is {}".format(p.player.name))
                 return p
         return None
 
@@ -128,10 +122,10 @@ class GameState(ndb.Model):
             return 'down'
 
     def getPlayerState(self, user):
-        playerState = self.nextPlayer()
-        if not playerState.player.identity() == user.identity():
-            raise ValueError('next turn is for {}, not {}'.format(self.nextPlayer().player.name, user.name))
-        return playerState
+        for p in self.players:
+            if p.player.identity() == user.identity():
+                return p
+        return None
 
     def incrementTurn(self):
         self.turn = self.turn + 1
@@ -156,7 +150,6 @@ class GameState(ndb.Model):
 
     def addLetterToBoard(self, playerState, x, y, letter):
         if self.letter(x,y) == '_':
-            # print('removing {} from {}'.format(letter,playerState.letters.asString()))
             playerState.bag.remove(letter)  # raises error if not there
             self.setBoardContent(x,y,letter)
         playerState.score = playerState.score + letterValue[letter]     # accumulate score
@@ -301,10 +294,15 @@ class LetterBag():
             bag.add(l)
         return bag 
 
+    @classmethod
+    def standardSet(cls):
+        bag = LetterBag()
+        for l in alphabet:
+            for i in range(duplicates(l)):
+                bag.add(l)
+        return bag
+
     def add(self, l):
-        # print('LetterBag.add(l)')
-        # print(l)
-        # print(self.map[l])
         self.map[l] += 1
 
     def addAll(self, bag):
@@ -326,14 +324,10 @@ class LetterBag():
             l = self.removeByIndex(randint(0,selfSize-1))
             selfSize -= 1
             removed.add(l)
-        # print('removeRandom returning {}'.format(removed))
         return removed
 
     def removeByIndex(self, i):
-        # print('removing item {}'.format(i))
-        # print(self)
         l = self.letterAtIndex(i)
-        # print('found letter {}'.format(l))
         self.remove(l)
         return l
 

@@ -2,6 +2,10 @@
 # assumes you have already started ww_api.py in a local web server via command:
 #    dev_appserver.py .
 
+import sys
+sys.path.insert(1, '/usr/local/google_appengine')
+sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
+
 import pprint
 
 from apiclient.discovery import build

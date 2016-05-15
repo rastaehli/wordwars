@@ -14,9 +14,10 @@ class Test():
     steve = User.create('steve', 'steve@gmail.com')
     v = PrintView()
 
-    users = [joe, steve]
+    game = GameState.create()
+    game.addPlayer(joe)
+    game.addPlayer(steve)
 
-    game = GameState.create(users)
     for p in game.players:
       p.bag = LetterBag.fromString('catgegae')
     game.start()

@@ -1,0 +1,63 @@
+app engine development notes
+
+1) have a google account (and the Google SDK installed)
+2) login to google developers console and register your application
+	- https://console.developers.google.com
+	- from top dropdown, create new project -> defines your <app_id>
+	- after deployment in step 4, access your app at http://<app_id>.appspot.com
+3) write and test (google endpoints) application on your machine with dev_appserver from the google SDK
+	- create app.yaml to describe your endpoints app to the google platform
+	- set app_id to the value <app_id> you defined above
+	- write an enpoints api handler in <api_file>.py
+		- annotate the class with name and version (app_info): "@endpoints.api(name='<api_name>', version='<vN>')"
+			ConferenceApi example also includes 'allowed_client_ids' as a list of ids!? and 'scopes=[EMAIL_SCOPE]'.  See adding auth below.
+		- annotate each api method with:
+			@endpoints.method(<request_type>, <response_type>, <path>, <http_method>, <name>)
+			where request/response types are subclasses of messages.Message
+			(if request contains path or querystring arguments it needs to be a subclass of endpoints.ResourceContainer)
+	- create models.py for your domain models
+		- subclass ndb.Model if you want to make these persistent (can translate transient model fields to/from ndb types as needed when persisting/retrieving)
+		- use @classmethod annotation for factory methods because ndb prevents use of usual __init__ constructor for Models
+		- add XRepository classes to encapsulate persistence operations.  Implement domain operations for save/retrieving from repository.
+	- create api_messages.py for endpoints api request/response classes needed by the api.
+	- unit test all these classes except the api itself which can't be called except via the endpoints client protocols.
+	- configure handlers for application url paths identified by '- url: <url_pattern>'
+		'static_dir: <static_path>' declares <static_dir>/<static_file> can be downloaded by <url_pattern>/<static_file>
+		'static_files: <static_file>' declares <static_file> is returned for <url_pattern>
+		'upload: <static_file>' declares ?
+		'secure: always' means all communication will be over https
+		'script: <api_file>.APPLICATION' specifies your <api_file>.py as the handler for uls matching <url_pattern>
+		'/_ah/spi/.*' is the platform defined <url_pattern> for application service provider interface urls.
+	- run GoogleAppEngineLauncher to run your app locally (ignore the "deploy" button, that's the next step)
+		add your app, specify the directory with your <app.yaml>
+		run it with the "play" button, open the "logs console"
+		note the url in the  "Starting module 'default' running at <app_url>" message
+		open a browser on <app_url>/_ah/api/explorer
+		click "services" to see the api methods defined by annotations in your <api_file>.py
+		test your application by entering request inputs in the forms provided and sending.
+4) deploy to app_engine cloud platform (and test/verify with _ah/api/explorer)
+	- run GoogleAppEngineLauncher to deploy to the cloud using the app_id in your app.yaml file.
+5) write and test frontend (javascript client) against running application (google endpoint) backend
+	- include javascript library https://apis.google.com/js/client.js?onload=init
+	- define the init function in your javascript to call gapi.client.load method to load your <api_name> endpoints app.  This creates the gapi.client.<api_name> proxy object for your remote service api.  Actually, this methods of this proxy return request objects that you must then execute with a callback to handle the response.
+	- See examples here: https://github.com/GoogleCloudPlatform/appengine-endpoints-helloendpoints-python
+	- See https://developers.google.com/apis-explorer for the many public apis available for your application to call.
+6) add third party user authentication
+	- on https://console.developers.google.com/project/<app_client_id>  choose APIs & Auth -> Consent Screen
+	- configure the user consent screen 
+		- enter your contact email for the app
+		- enter product name (the name the user will see on login as the 'product' requesting access to their google account)
+		- specify app needs access only to identity and email address
+	- navigate to APIs & Auth -> Credentials
+	- create credentials so your apps frontend can authenticate with the backend endpoints app.
+		- create new OAuth 'client id' <app_client_id> for a 'web-application' Note that if
+		- under 'authorized javascript origins' enter 2 urls: one for your appspot app url, and one for localhost:port for your dev testing. (these are the service urls this client is allowed to access with this google client id)
+	- include <app_client_id> in <api_file>.py '@endpoints.api' annotation list of 'allowed_client_ids' (This app_client_id is for the client of your backend service and not the app_client_id given to your service as a client of google services.  Only if your client code is in the same project as your service code will this id be the same.)
+	- include 'API_EXPLORER_CLIENT_ID' in the list of 'allowed_client_ids' also, so google's api explorer can access your app.
+	- <api_file>.py can get current logged in user (if any) by calling 'endpoints.get_current_user()'
+		- if not user: (return value was None) raise endpoints.UnauthorizedException('Authorization required') and handle with redirect to login form.
+	- implement login form with javascript OAuth2: use <app_client_id> to define auth2Provider object.  See ConferenceApi example app.js
+	
+
+
+
