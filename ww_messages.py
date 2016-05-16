@@ -19,17 +19,18 @@ class GameForm(messages.Message):
     """GameForm for outbound game state information"""
     urlsafe_key = messages.StringField(1, required=True)
     board = messages.StringField(2, required=True)
-    game_over = messages.BooleanField(3, required=True)
-    user_turn = messages.StringField(4, required=True)
-    user_letters = messages.StringField(5, required=True)
-    user_score = messages.IntegerField(6, required=True)
+    game_over = messages.BooleanField(4, required=True)
+    user_turn = messages.StringField(5, required=True)
+    user_letters = messages.StringField(6, required=True)
+    user_score = messages.IntegerField(7, required=True)
 
 class MakeMoveForm(messages.Message):
     """Used to make a move in an existing game"""
-    x = messages.IntegerField(1, required=True)
-    y = messages.IntegerField(2, required=True)
-    across = messages.BooleanField(3, required=True)
-    word = messages.StringField(4, required=True)
+    user_name = messages.StringField(1, required=True)
+    x = messages.IntegerField(2)  # if x, y, or across are missing, skip turn
+    y = messages.IntegerField(3)
+    across = messages.BooleanField(4)
+    word = messages.StringField(5, required=True)  # empty string means skip turn
 
 class IdForm(messages.Message):
     """for outbound model identity"""

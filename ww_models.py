@@ -53,6 +53,9 @@ class UserRepository():
     def findByName(self, name):
         return User.query(User.name == name).get()
 
+    def all(self):
+        return User.query().fetch()
+
 # a few declarations to support WordWars game logic
 
 #simple set of all letters of the alphabet
@@ -138,6 +141,7 @@ class GameState(ndb.Model):
         self.consecutivePasses = 0
 
     def addWordToBoard(self, playerState, x, y, across, word):
+        print('===============player {} adding {}'.format(playerState.player.name, word))
         nextX = x
         nextY = y
         for i in range(len(word)):
@@ -152,6 +156,7 @@ class GameState(ndb.Model):
         if self.letter(x,y) == '_':
             playerState.bag.remove(letter)  # raises error if not there
             self.setBoardContent(x,y,letter)
+        print('===============played {} with value {}'.format(letter, letterValue[letter]))
         playerState.score = playerState.score + letterValue[letter]     # accumulate score
        
     def skipTurn(self, user):
@@ -181,6 +186,11 @@ class GameState(ndb.Model):
                 leader = p
         return leader
 
+    def scoreForUser(self, user):
+        for p in self.players:
+            if p.player.identity() == user.identity():
+                return p.score
+        raise ValueError('user {} is not a player'.format(user.name))
 
 # apply Repository pattern to encapsulate details of persistence
 class GameStateRepository():
@@ -274,7 +284,7 @@ class PlayerStateRepository():
         return self.restoreTransients(p)
 
     def findByGame(self, aGameKey):
-        list =  PlayerState.query(PlayerState.gameKey==aGameKey).fetch(10)  # arbitrary limit 10 per game
+        list =  PlayerState.query(PlayerState.gameKey==aGameKey).fetch()
         for p in list:
             self.restoreTransients(p)
         return list

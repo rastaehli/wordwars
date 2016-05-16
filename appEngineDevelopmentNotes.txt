@@ -16,10 +16,24 @@ app engine development notes
 			where request/response types are subclasses of messages.Message
 			(if request contains path or querystring arguments it needs to be a subclass of endpoints.ResourceContainer)
 	- create models.py for your domain models
-		- subclass ndb.Model if you want to make these persistent (can translate transient model fields to/from ndb types as needed when persisting/retrieving)
+	- make your models persistent in Google DataStore
+		- subclass ndb.Model
 		- use @classmethod annotation for factory methods because ndb prevents use of usual __init__ constructor for Models
-		- add XRepository classes to encapsulate persistence operations.  Implement domain operations for save/retrieving from repository.
+		- add <Kind>Repository classes to encapsulate persistence operations for <Kind> objects.  Implement domain operations for save/retrieving from repository.
+			- Your repository create/read/update methods can translate transient model fields to/from ndb types as needed.
+			- You can explicitly choose the keys for your Entities if you want to improve locality because Data Store clusters data by key.
+			- Specify parent key when you create an entity key if you want to exploit ancestor (creator) relations.
+			- Use Model.allocate_ids(size=N, parent=<ancestor_key>) to return an array of N unique key values if you don't have a natural unique key.
+			- use datastore browser tool (url?) to explore persisted entities
+			- q = <Kind>.query #creates a query q
+			- q.filter(<Kind>.column == <value>)  # query for only entities where column=<value>
+			- q.get() # return one result
+			- q.fetch() # all results
+			- q.fetch(5) # the first five
+			- for result in q:  # iterate over q.fetch() results
 	- create api_messages.py for endpoints api request/response classes needed by the api.
+		- declare message field names and types from available Message types
+		- declare type parameters (like 'repeated=True' to indicate a list field)
 	- unit test all these classes except the api itself which can't be called except via the endpoints client protocols.
 	- configure handlers for application url paths identified by '- url: <url_pattern>'
 		'static_dir: <static_path>' declares <static_dir>/<static_file> can be downloaded by <url_pattern>/<static_file>
@@ -28,13 +42,15 @@ app engine development notes
 		'secure: always' means all communication will be over https
 		'script: <api_file>.APPLICATION' specifies your <api_file>.py as the handler for uls matching <url_pattern>
 		'/_ah/spi/.*' is the platform defined <url_pattern> for application service provider interface urls.
-	- run GoogleAppEngineLauncher to run your app locally (ignore the "deploy" button, that's the next step)
-		add your app, specify the directory with your <app.yaml>
-		run it with the "play" button, open the "logs console"
-		note the url in the  "Starting module 'default' running at <app_url>" message
-		open a browser on <app_url>/_ah/api/explorer
-		click "services" to see the api methods defined by annotations in your <api_file>.py
-		test your application by entering request inputs in the forms provided and sending.
+	- run your app locally with the command 'dev_appserver.py .' (uses app.yaml in the current directory)
+		- note the url in the  "Starting module 'default' running at <app_url>" message
+		- open a browser on <app_url>/_ah/api/explorer (IMPORTANT: disable protection because most browsers block content from this unsecure version of the service.)
+			- Firefox allows you to click the "lock" icon in the address bar, lick the ">" button and choose to "disable protection for now"
+			- Chrome: /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=test --unsafely-treat-insecure-origin-as-secure=http://localhost:8080
+	- alternatively, run GoogleAppEngineLauncher to run your app locally (ignore the "deploy" button, that's the next step)
+		-add your app, specify the directory with your <app.yaml>
+		-run it with the "play" button, open the "logs console"
+		-note the url and test your application as described above.
 4) deploy to app_engine cloud platform (and test/verify with _ah/api/explorer)
 	- run GoogleAppEngineLauncher to deploy to the cloud using the app_id in your app.yaml file.
 5) write and test frontend (javascript client) against running application (google endpoint) backend
@@ -57,7 +73,7 @@ app engine development notes
 	- <api_file>.py can get current logged in user (if any) by calling 'endpoints.get_current_user()'
 		- if not user: (return value was None) raise endpoints.UnauthorizedException('Authorization required') and handle with redirect to login form.
 	- implement login form with javascript OAuth2: use <app_client_id> to define auth2Provider object.  See ConferenceApi example app.js
-	
+
 
 
 
