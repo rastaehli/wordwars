@@ -10,7 +10,7 @@ handlers:
   upload: favicon\.ico
 
 - url: /_ah/spi/.*
-  script: ww_api.api
+  script: api.api
 
 - url: /crons/send_reminder
   script: main.app

@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
-# view object to print world wars model state to console.
-from ww_models import User, GameState, PlayerState
+""" view object to print world wars model state to console."""
+from models import User, GameState, PlayerState
 
 class PrintView(object):
 

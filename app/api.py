@@ -12,10 +12,11 @@ from protorpc import remote, messages
 # from google.appengine.api import memcache
 # from google.appengine.api import taskqueue
 
-from ww_models import User, GameState, GameStateRepository, UserRepository
-from ww_print_view import PrintView
+from models import User, GameState
+from repositories import GameStateRepository, UserRepository, PlayerStateRepository
+from print_view import PrintView
 from utils import get_by_urlsafe
-from ww_messages import NewGameForm, StringMessage, GameForm, MakeMoveForm, IdForm
+from messages import NewGameForm, StringMessage, GameForm, MakeMoveForm, IdForm
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer()
 START_GAME_REQUEST = endpoints.ResourceContainer( id=messages.StringField(1) )
@@ -46,6 +47,11 @@ class WordWarsApi(remote.Service):
         user = User.create(request.user_name, request.email)
         self.userDb().register(user)
         return StringMessage(message='User {} created!'.format(request.user_name))
+
+    # def get_user_games(self, request):
+    #     """return all games where this user is a player"""
+    #     user = self.userByName(request.user_name)
+    #     pList = PlayerStateRepository().
 
     def nextPlayerInfo(self, game):
         next = game.nextPlayer()

@@ -1,5 +1,8 @@
-from ww_models import User, GameState, PlayerState, LetterBag
-from ww_print_view import PrintView
+import sys
+sys.path.append('app')
+
+from models import User, GameState, PlayerState, LetterBag
+from print_view import PrintView
 
 class Test():
 

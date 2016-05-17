@@ -1,4 +1,7 @@
-from ww_models import LetterBag
+import sys
+sys.path.append('app')
+
+from models import LetterBag
 
 class Test():
 

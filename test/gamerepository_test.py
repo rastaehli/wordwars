@@ -1,5 +1,9 @@
-from ww_models import User, GameState, GameStateRepository, PlayerState, LetterBag
-from ww_print_view import PrintView
+import sys
+sys.path.append('app')
+
+from models import User, GameState, PlayerState, LetterBag
+from repositories import GameStateRepository
+from print_view import PrintView
 import utils
 
 import unittest

@@ -1,13 +1,7 @@
 
 """ww-models.py - This file contains the class definitions for the Datastore
-entities used by Word Wars. Because these classes are also regular Python
-classes they can include methods (such as 'to_form' and 'new_game')."""
-
-"""The Repository pattern is used.  For an entity (ndb.Model) e and EntityRepository r, clients must:
-    - call r.register(e) to persist e and return its id value
-    - call e = r.findById( id ) to retrieve the entity by its id (from r.register(e) above)
-    - call r.save(e) to save changes made to e (raises an error if r has not been registered)
-"""
+entities used by WordWars. As in any good object oriented design, methods that
+need to know the internal state of the model objects are made part of the class."""
 
 import sys
 sys.path.insert(1, '/usr/local/google_appengine')
@@ -32,31 +26,7 @@ class User(ndb.Model):
     def identity(self):
         return self.email
 
-# apply Repository pattern to encapsulate details of persistence
-class UserRepository():
-
-    def register(self, user):
-        if user.key == None:
-            user.put()
-        return user
-
-    def update(self, user):
-        user.put()
-        return user
-
-    def id(self, user):
-        return user.key.urlsafe()
-
-    def findById(self, id):
-        return get_by_urlsafe(id, User)
-
-    def findByName(self, name):
-        return User.query(User.name == name).get()
-
-    def all(self):
-        return User.query().fetch()
-
-# a few declarations to support WordWars game logic
+# a few declarations to support GameState logic
 
 #simple set of all letters of the alphabet
 alphabet = "abcdefghijklmnopqrstuvwxyz"
@@ -192,46 +162,6 @@ class GameState(ndb.Model):
                 return p.score
         raise ValueError('user {} is not a player'.format(user.name))
 
-# apply Repository pattern to encapsulate details of persistence
-class GameStateRepository():
-
-    # persist gameState and its parts
-    def register(self, gameState):
-        self.setPersistents(gameState)
-        gameState.put()
-        for p in gameState.players:
-            p.gameKey = gameState.key
-            PlayerStateRepository().register(p)
-        return gameState
-
-    def setPersistents(self, state):
-        state.letters = state.bagOfLetters.asString()  # set persistent field from transient state
-        state.board = ''.join(state.boardContent)      # set persistent field from transient state
-        return state
-
-    def restoreTransients(self, state):
-        state.bagOfLetters = LetterBag.fromString(state.letters)
-        state.boardContent = list(state.board)    # easier to access content as a list
-        return state
-
-    # persist gameState and its parts
-    def update(self, gameState):
-        self.setPersistents(gameState)
-        gameState.put()
-        for p in gameState.players:
-            p.gameKey = gameState.key
-            PlayerStateRepository().update(p)
-        return gameState
-
-    def id(self, gameState):
-        return gameState.key.urlsafe()
-
-    def findById(self, id):
-        game = get_by_urlsafe(id, GameState)
-        self.restoreTransients(game)
-        game.players = PlayerStateRepository().findByGame(game.key)
-        return game
-
 # part of a gameState that describes player
 class PlayerState(ndb.Model):
     gameKey = ndb.KeyProperty(required=True, kind='GameState')
@@ -248,46 +178,6 @@ class PlayerState(ndb.Model):
         state.bag = bag
         state.score = 0
         return state
-
-# apply Repository pattern to encapsulate details of persistence
-class PlayerStateRepository():
-
-    # persist playerState
-    def register(self, p):
-        UserRepository().register(p.player)
-        self.setPersistents(p)
-        p.put()
-        return p
-
-    # update playerState
-    def update(self, p):
-        UserRepository().update(p.player)
-        self.setPersistents(p)
-        p.put()
-        return p
-
-    def id(self, p):
-        return p.key.urlsafe()
-
-    def setPersistents(self, state):
-        state.userKey = state.player.key        # set persistent field from transient state
-        state.letters = state.bag.asString()    # set persistent field from transient state
-        return state
-
-    def restoreTransients(self, state):
-        state.player = state.userKey.get()
-        state.bag = LetterBag.fromString(state.letters)
-        return state
-
-    def findById(self, id):
-        p = get_by_urlsafe(id, PlayerState)
-        return self.restoreTransients(p)
-
-    def findByGame(self, aGameKey):
-        list =  PlayerState.query(PlayerState.gameKey==aGameKey).fetch()
-        for p in list:
-            self.restoreTransients(p)
-        return list
 
 # Store count of letters held.
 class LetterBag():
@@ -363,9 +253,6 @@ class LetterBag():
         return letters
 
     def __repr__(self):
-        # result = ''
-        # for l in alphabet:
-        #     result += '{}:{}, '.format(l, self.map[l])
         return self.map.__repr__()
 
 
