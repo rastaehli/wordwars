@@ -16,7 +16,7 @@ from models import User, GameState
 from repositories import GameStateRepository, UserRepository, PlayerStateRepository
 from print_view import PrintView
 from utils import get_by_urlsafe
-from messages import NewGameForm, StringMessage, GameForm, MakeMoveForm, IdForm
+from messages import StringMessage, GameForm, MakeMoveForm, IdForm
 
 NEW_GAME_REQUEST = endpoints.ResourceContainer()
 START_GAME_REQUEST = endpoints.ResourceContainer( id=messages.StringField(1) )
@@ -27,9 +27,11 @@ USER_REQUEST = endpoints.ResourceContainer( user_name=messages.StringField(1), e
 ALL_USERS_REQUEST = endpoints.ResourceContainer()
 USER_GAMES_REQUEST = endpoints.ResourceContainer()
 
+
 @endpoints.api(name='word_wars_api', version='v1',
-    allowed_client_ids=['wordwars-1311', endpoints.API_EXPLORER_CLIENT_ID])
     # grant access to ourselves and google's api_explorer also.
+    allowed_client_ids=['wordwars-1311', endpoints.API_EXPLORER_CLIENT_ID])
+"""Google endpoints API for WordWars game service."""
 class WordWarsApi(remote.Service):
     def __init__(self):
         self.games = GameStateRepository()
@@ -40,6 +42,7 @@ class WordWarsApi(remote.Service):
                       path='user',
                       name='create_user',
                       http_method='POST')
+    """Create a new User that can then be added as a game player."""
     def create_user(self, request):
         """Create a User. Requires a unique username"""
         if self.userDb().findByName(request.user_name):
@@ -48,82 +51,96 @@ class WordWarsApi(remote.Service):
         self.userDb().register(user)
         return StringMessage(message='User {} created!'.format(request.user_name))
 
-    # def get_user_games(self, request):
-    #     """return all games where this user is a player"""
-    #     user = self.userByName(request.user_name)
-    #     pList = PlayerStateRepository().
+    @endpoints.method(request_message=USER_GAMES_REQUEST,
+                        response_message=StringList,
+                        path='user/{user_name}/games',
+                        name='get_user_games',
+                        http_method='GET')
+    """Return list of id values for all games where this user is a player."""
+    def get_user_games(self, request):
+        """return id values for all games where this user is a player"""
+        user = self.userByName(request.user_name)
+        idList = StringList()
+        for p in PlayerStateRepository().findByUser(user):
+            idList.append( self.games.id( p.game ))
+        return idList
 
+    """Return game state, including identity of whose turn is next."""
     def nextPlayerInfo(self, game):
         next = game.nextPlayer()
         if next:
-          return GameForm(
-            urlsafe_key = self.gameDb().id(game),
-            board = game.board,
-            game_over = game.gameOver(),
-            user_turn = next.player.name,
-            user_letters = next.letters,
-            user_score = next.score)
+            return GameForm(
+                urlsafe_key = self.gameDb().id(game),
+                board = game.board,
+                game_over = game.gameOver(),
+                user_turn = next.player.name,
+                user_letters = next.letters,
+                user_score = next.score)
         else:
-          return GameForm(
-            urlsafe_key = self.gameDb().id(game),
-            board = game.board,
-            game_over = game.gameOver(),
-            user_turn = 'None',
-            user_letters = '',
-            user_score = 0)
+            return GameForm(
+                urlsafe_key = self.gameDb().id(game),
+                board = game.board,
+                game_over = game.gameOver(),
+                user_turn = 'None',
+                user_letters = '',
+                user_score = 0)
 
+    """Set reference to repository of persistent game state."""
     def gameDb(self):
-      if not self.games:
-        self.games = GameStateRepository()
-      return self.games
-      
+        if not self.games:
+            self.games = GameStateRepository()
+        return self.games
+
+    """Set reference to repository of persistent user objects."""
     def userDb(self):
-      if not self.users:
-        self.users = UserRepository()
-      return self.users
-      
+        if not self.users:
+            self.users = UserRepository()
+        return self.users
+
     @endpoints.method(request_message=NEW_GAME_REQUEST,
                       response_message=IdForm,
                       path='game/new',
                       name='new_unstarted_game',
                       http_method='POST')
+    """Create a new game state and return its ID."""
     def new_unstarted_game(self, request):
         """Creates new game with no users"""
         game = GameState.create()
         self.gameDb().register(game)  # important to define "board" and other persistent variables returned below
         # TODO: JSON response
         next = game.nextPlayer()
-        return IdForm(urlsafe_key = self.gameDb().id(game))
+        return IdForm(urlsafe_key=self.gameDb().id(game))
 
     @endpoints.method(request_message=ALL_USERS_REQUEST,
-    				response_message=StringMessage,
-    				path='users',
-    				name='get_all_users',
-    				http_method='GET')
+                      response_message=StringList,
+                      path='users',
+                      name='get_all_users',
+                      http_method='GET')
+    """Return list of all known users."""
     def get_all_users(self, request):
-    	nameList = []
-    	for u in self.userDb().all():
-	    	nameList.append(u.name)
-    	return StringMessage(message=', '.join(nameList))
+        nameList = StringList()
+        for u in self.userDb().all():
+            nameList.append(u.name)
+        return nameList
 
     @endpoints.method(request_message=GET_GAME_REQUEST,
                       response_message=GameForm,
                       path='game/{id}',
                       name='get_game',
                       http_method='GET')
+    """Return game state for requested ID."""
     def get_game(self, request):
-        """Return the current game state."""
         game = self.gameById(request.id)
         return self.nextPlayerInfo(game)
 
     def gameById(self, id):
-    	game = self.gameDb().findById(id)
+        game = self.gameDb().findById(id)
         if not game:
             raise endpoints.NotFoundException('Game not found!')
         return game
 
     def userByName(self, name):
-    	user = self.userDb().findByName(name)
+        user = self.userDb().findByName(name)
         if not user:
             raise endpoints.NotFoundException('User {} not found!'.format(name))
         return user
@@ -133,6 +150,7 @@ class WordWarsApi(remote.Service):
                       path='game/{id}/add_user',
                       name='add_user',
                       http_method='PUT')
+    """Add user to requested game."""
     def add_user(self, request):
         game = self.gameById(request.id)
         user = self.userByName(request.user_name)
@@ -145,6 +163,7 @@ class WordWarsApi(remote.Service):
                       path='game/{id}/start',
                       name='start_game',
                       http_method='PUT')
+    """Start requested game (no more players may be added)."""
     def start_game(self, request):
         game = self.gameById(request.id)
         game.start()
@@ -163,6 +182,7 @@ class WordWarsApi(remote.Service):
                       path='game/{id}/move',
                       name='make_move',
                       http_method='PUT')
+    """Add requested word to the board at x,y, across or not."""
     def make_move(self, request):
         game = self.gameById(request.id)
         user = self.userDb().findByName(request.user_name)
@@ -170,9 +190,9 @@ class WordWarsApi(remote.Service):
             return StringMessage(message='Game already over!')
         scoreBefore = game.scoreForUser(user)
         if len(request.word) <= 0:
-          game.skipTurn(user)
+            game.skipTurn(user)
         else:
-          game.playWord(user, request.x, request.y, request.across, request.word)
+            game.playWord(user, request.x, request.y, request.across, request.word)
         scoreAfter = game.scoreForUser(user)
         self.gameDb().update(game)
         return self.scoreInfo(scoreBefore, scoreAfter)

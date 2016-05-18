@@ -1,8 +1,9 @@
-""" view object to print world wars model state to console."""
 from models import User, GameState, PlayerState
 
+"""Utility view object to print world wars model."""
 class PrintView(object):
 
+	"""Print game state to console."""
 	def showGameState(self, gameState):
 		print("Board:")
 		boardString = ''.join(gameState.boardContent)
@@ -16,5 +17,3 @@ class PrintView(object):
 			print("Game over.  {} is the winner.".format(gameState.leader().player.name))
 		else:
 			print("Next turn belongs to {}".format(gameState.nextPlayer().player.name))
-
-
