@@ -26,8 +26,8 @@ class User(ndb.Model):
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
 
-    @classmethod
     """Class factory method to create a User."""
+    @classmethod
     def create(cls, name, email):
         user = cls()
         user.name = name
@@ -64,8 +64,8 @@ class GameState(ndb.Model):
     createdTime = ndb.DateTimeProperty(auto_now_add=True)
     turn = ndb.IntegerProperty(required=True)
 
-    @classmethod
     """Class factory method to create a GameState."""
+    @classmethod
     def create(cls):
         game = cls()    # get new ndb.Model instance
         game.turn = -1  # negative value until start() called
@@ -197,8 +197,8 @@ class PlayerState(ndb.Model):
     letters = ndb.StringProperty(required=True)
     score = ndb.IntegerProperty(required=True)
 
-    @classmethod
     """Class factory method to create a PlayerState."""
+    @classmethod
     def create(cls, game, user, turnNumber, bag):
         state = cls()       # new instance of class
         state.player = user
@@ -215,16 +215,16 @@ class LetterBag():
         for l in alphabet:
             self.map[l] = 0
 
-    @classmethod
     """Construct a LetterBag from string."""
+    @classmethod
     def fromString(cls, s):
         bag = cls()
         for l in s:
             bag.add(l)
         return bag
 
-    @classmethod
     """Construct a LetterBag with WordWars standard initial set."""
+    @classmethod
     def standardSet(cls):
         bag = LetterBag()
         for l in alphabet:

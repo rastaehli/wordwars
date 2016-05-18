@@ -117,7 +117,7 @@ class PlayerStateRepository():
     def setPersistents(self, state):
         state.userKey = state.player.key
         state.letters = state.bag.asString()
-        return stat
+        return state
 
     """set (derive) transient values from persistent fields"""
     def restoreTransients(self, state):
