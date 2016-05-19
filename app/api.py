@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-`
 """ww_api.py - Create RESTful API endpoints (URLs) for interacting
 with the WordWars web app.  This API imports and delegates to the model
 objects that implement the game logic, including repository objects:
 the Repository pattern is used to separate details of the persistence
 service from the application logic."""
+# -*- coding: utf-8 -*-`
 
 
 import logging
@@ -16,33 +16,23 @@ from models import User, GameState
 from repositories import GameStateRepository, UserRepository, PlayerStateRepository
 from print_view import PrintView
 from utils import get_by_urlsafe
-from messages import StringMessage, GameForm, MakeMoveForm, IdForm
-
-NEW_GAME_REQUEST = endpoints.ResourceContainer()
-START_GAME_REQUEST = endpoints.ResourceContainer( id=messages.StringField(1) )
-GET_GAME_REQUEST = endpoints.ResourceContainer( id=messages.StringField(1) )
-ADD_USER_TO_GAME_REQUEST = endpoints.ResourceContainer( id=messages.StringField(1), user_name=messages.StringField(2))
-MAKE_MOVE_REQUEST = endpoints.ResourceContainer( MakeMoveForm, id=messages.StringField(1) )
-USER_REQUEST = endpoints.ResourceContainer( user_name=messages.StringField(1), email=messages.StringField(2) )
-ALL_USERS_REQUEST = endpoints.ResourceContainer()
-USER_GAMES_REQUEST = endpoints.ResourceContainer()
+from messages import StringMessage, StringList, GameForm, MakeMoveForm, IdForm
 
 
-@endpoints.api(name='word_wars_api', version='v1',
+@endpoints.api(name='api', version='v1',
     # grant access to ourselves and google's api_explorer also.
     allowed_client_ids=['wordwars-1311', endpoints.API_EXPLORER_CLIENT_ID])
-"""Google endpoints API for WordWars game service."""
 class WordWarsApi(remote.Service):
+    """Google endpoints API for WordWars game service."""
     def __init__(self):
         self.games = GameStateRepository()
         self.users = UserRepository()
 
-    @endpoints.method(request_message=USER_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer( name=messages.StringField(1), email=messages.StringField(2) ),
                       response_message=StringMessage,
                       path='user',
                       name='create_user',
                       http_method='POST')
-    """Create a new User that can then be added as a game player."""
     def create_user(self, request):
         """Create a User. Requires a unique username"""
         if self.userDb().findByName(request.user_name):
@@ -51,22 +41,32 @@ class WordWarsApi(remote.Service):
         self.userDb().register(user)
         return StringMessage(message='User {} created!'.format(request.user_name))
 
-    @endpoints.method(request_message=USER_GAMES_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer(user_name=messages.StringField(1)),
                         response_message=StringList,
                         path='user/{user_name}/games',
                         name='get_user_games',
                         http_method='GET')
-    """Return list of id values for all games where this user is a player."""
     def get_user_games(self, request):
-        """return id values for all games where this user is a player"""
+        """Return id values for all games where this user is a player."""
         user = self.userByName(request.user_name)
         idList = StringList()
         for p in PlayerStateRepository().findByUser(user):
             idList.append( self.games.id( p.game ))
         return idList
 
-    """Return game state, including identity of whose turn is next."""
+    @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
+                      response_message=StringMessage,
+                      path='game/{gameid}',
+                      name='cancel_game',
+                      http_method='POST')
+    def cancel_game(self, request):
+        """Mark game as cancelled, with no winner."""
+        game = self.gameById(request.gameid)
+        game.cancel()
+        return StringMessage('Game is cancelled.')
+
     def nextPlayerInfo(self, game):
+        """Return game state, including identity of whose turn is next."""
         next = game.nextPlayer()
         if next:
             return GameForm(
@@ -85,52 +85,51 @@ class WordWarsApi(remote.Service):
                 user_letters = '',
                 user_score = 0)
 
-    """Set reference to repository of persistent game state."""
     def gameDb(self):
+        """Set reference to repository of persistent game state."""
         if not self.games:
             self.games = GameStateRepository()
         return self.games
 
-    """Set reference to repository of persistent user objects."""
     def userDb(self):
+        """Set reference to repository of persistent user objects."""
         if not self.users:
             self.users = UserRepository()
         return self.users
 
-    @endpoints.method(request_message=NEW_GAME_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer(),
                       response_message=IdForm,
                       path='game/new',
                       name='new_unstarted_game',
                       http_method='POST')
-    """Create a new game state and return its ID."""
     def new_unstarted_game(self, request):
-        """Creates new game with no users"""
+        """Create a new game with no users and return its ID."""
         game = GameState.create()
         self.gameDb().register(game)  # important to define "board" and other persistent variables returned below
         # TODO: JSON response
         next = game.nextPlayer()
         return IdForm(urlsafe_key=self.gameDb().id(game))
 
-    @endpoints.method(request_message=ALL_USERS_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer(),
                       response_message=StringList,
                       path='users',
                       name='get_all_users',
                       http_method='GET')
-    """Return list of all known users."""
     def get_all_users(self, request):
+        """Return list of all known users."""
         nameList = StringList()
         for u in self.userDb().all():
             nameList.append(u.name)
         return nameList
 
-    @endpoints.method(request_message=GET_GAME_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
                       response_message=GameForm,
-                      path='game/{id}',
+                      path='game/{gameid}',
                       name='get_game',
                       http_method='GET')
-    """Return game state for requested ID."""
     def get_game(self, request):
-        game = self.gameById(request.id)
+        """Return game state for requested ID."""
+        game = self.gameById(request.gameid)
         return self.nextPlayerInfo(game)
 
     def gameById(self, id):
@@ -145,27 +144,27 @@ class WordWarsApi(remote.Service):
             raise endpoints.NotFoundException('User {} not found!'.format(name))
         return user
 
-    @endpoints.method(request_message=ADD_USER_TO_GAME_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer( gameid=messages.StringField(1), name=messages.StringField(2)),
                       response_message=StringMessage,
-                      path='game/{id}/add_user',
+                      path='game/{gameid}/add_user',
                       name='add_user',
                       http_method='PUT')
-    """Add user to requested game."""
     def add_user(self, request):
-        game = self.gameById(request.id)
+        """Add user to requested game."""
+        game = self.gameById(request.gameid)
         user = self.userByName(request.user_name)
         game.addPlayer(user)
         self.gameDb().update(game)
         return StringMessage(message='User {} added!'.format(request.user_name))
 
-    @endpoints.method(request_message=START_GAME_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer( gameid=messages.StringField(1) ),
                       response_message=GameForm,
-                      path='game/{id}/start',
+                      path='game/{gameid}/start',
                       name='start_game',
                       http_method='PUT')
-    """Start requested game (no more players may be added)."""
     def start_game(self, request):
-        game = self.gameById(request.id)
+        """Start requested game (no more players may be added)."""
+        game = self.gameById(request.gameid)
         game.start()
         self.gameDb().update(game)
         return self.nextPlayerInfo(game)
@@ -177,14 +176,14 @@ class WordWarsApi(remote.Service):
         else:
             return StringMessage(message='You added {} for a total score of {}.'.format(playScore, total))
 
-    @endpoints.method(request_message=MAKE_MOVE_REQUEST,
+    @endpoints.method(request_message=endpoints.ResourceContainer( MakeMoveForm, gameid=messages.StringField(1) ),
                       response_message=StringMessage,
-                      path='game/{id}/move',
+                      path='game/{gameid}/move',
                       name='make_move',
                       http_method='PUT')
-    """Add requested word to the board at x,y, across or not."""
     def make_move(self, request):
-        game = self.gameById(request.id)
+        """Add requested word to the board at x,y, across or not."""
+        game = self.gameById(request.gameid)
         user = self.userDb().findByName(request.user_name)
         if game.gameOver():
             return StringMessage(message='Game already over!')
