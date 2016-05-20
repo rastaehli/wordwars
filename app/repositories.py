@@ -115,12 +115,14 @@ class PlayerStateRepository():
 
     """set persistent fields from transient values"""
     def setPersistents(self, state):
+        state.gameKey = state.game.key
         state.userKey = state.player.key
         state.letters = state.bag.asString()
         return state
 
     """set (derive) transient values from persistent fields"""
     def restoreTransients(self, state):
+        state.game = state.gameKey.get()
         state.player = state.userKey.get()
         state.bag = LetterBag.fromString(state.letters)
         return state

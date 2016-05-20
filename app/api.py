@@ -49,10 +49,12 @@ class WordWarsApi(remote.Service):
     def get_user_games(self, request):
         """Return id values for all games where this user is a player."""
         user = self.userByName(request.user_name)
-        idList = StringList()
+        idList = []
         for p in PlayerStateRepository().findByUser(user):
             idList.append( self.games.id( p.game ))
-        return idList
+        gameIds = StringList()
+        gameIds.strings = idList
+        return gameIds
 
     @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
                       response_message=StringMessage,
@@ -65,25 +67,25 @@ class WordWarsApi(remote.Service):
         game.cancel()
         return StringMessage('Game is cancelled.')
 
-    def nextPlayerInfo(self, game):
+    def gameFormFrom(self, game):
         """Return game state, including identity of whose turn is next."""
         next = game.nextPlayer()
-        if next:
+        if next == None:
             return GameForm(
                 urlsafe_key = self.gameDb().id(game),
                 board = game.board,
-                game_over = game.gameOver(),
-                user_turn = next.player.name,
-                user_letters = next.letters,
-                user_score = next.score)
+                status = game.mode,
+                user_turn = 'None',
+                user_letters = '',
+                user_score = 0)
         else:
             return GameForm(
                 urlsafe_key = self.gameDb().id(game),
                 board = game.board,
-                game_over = game.gameOver(),
-                user_turn = 'None',
-                user_letters = '',
-                user_score = 0)
+                status = game.mode,
+                user_turn = next.player.name,
+                user_letters = next.letters,
+                user_score = next.score)
 
     def gameDb(self):
         """Set reference to repository of persistent game state."""
@@ -130,7 +132,7 @@ class WordWarsApi(remote.Service):
     def get_game(self, request):
         """Return game state for requested ID."""
         game = self.gameById(request.gameid)
-        return self.nextPlayerInfo(game)
+        return self.gameFormFrom(game)
 
     def gameById(self, id):
         game = self.gameDb().findById(id)
@@ -152,10 +154,10 @@ class WordWarsApi(remote.Service):
     def add_user(self, request):
         """Add user to requested game."""
         game = self.gameById(request.gameid)
-        user = self.userByName(request.user_name)
+        user = self.userByName(request.name)
         game.addPlayer(user)
         self.gameDb().update(game)
-        return StringMessage(message='User {} added!'.format(request.user_name))
+        return StringMessage(message='User {} added!'.format(request.name))
 
     @endpoints.method(request_message=endpoints.ResourceContainer( gameid=messages.StringField(1) ),
                       response_message=GameForm,
@@ -167,7 +169,7 @@ class WordWarsApi(remote.Service):
         game = self.gameById(request.gameid)
         game.start()
         self.gameDb().update(game)
-        return self.nextPlayerInfo(game)
+        return self.gameFormFrom(game)
 
     def scoreInfo(self, before, total):
         playScore = total - before

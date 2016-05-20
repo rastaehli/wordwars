@@ -52,6 +52,11 @@ letterValue = {'a': 1, 'b': 2, 'c': 2, 'd': 2, 'e': 1, 'f': 3, 'g': 3,
 def duplicates(l):
     return 10/letterValue[l]
 
+#Game state constant strings
+MODE_NEW='new'
+MODE_PLAYING='playing'
+MODE_CANCELLED='cancelled'
+MODE_OVER='over'
 
 """Model of wordwars game state."""
 class GameState(ndb.Model):
@@ -63,12 +68,14 @@ class GameState(ndb.Model):
     consecutivePasses = ndb.IntegerProperty(required=True)
     createdTime = ndb.DateTimeProperty(auto_now_add=True)
     turn = ndb.IntegerProperty(required=True)
+    mode = ndb.StringProperty(required=True)
 
     """Class factory method to create a GameState."""
     @classmethod
     def create(cls):
         game = cls()    # get new ndb.Model instance
-        game.turn = -1  # negative value until start() called
+        game.mode = MODE_NEW
+        game.turn = 0
         game.bagOfLetters = LetterBag.standardSet()
         game.width = 17
         game.height = 17
@@ -93,14 +100,21 @@ class GameState(ndb.Model):
     """Start the game.  No more players may be added."""
     def start(self):
         self.turn = 0
+        self.mode = MODE_PLAYING
         return self.nextPlayer()
+
+    """Cancel the game.  There is no winner."""
+    def cancel(self):
+        self.mode = MODE_CANCELLED
 
     """Return True if game has started."""
     def started(self):
-        return self.turn >= 0
+        return self.mode == MODE_PLAYING
 
     """Return PlayerState for player with next turn."""
     def nextPlayer(self):
+        if self.mode != MODE_PLAYING:
+            return None
         for p in self.players:
             if p.turnNumber == self.turn:
                 return p
@@ -201,6 +215,7 @@ class PlayerState(ndb.Model):
     @classmethod
     def create(cls, game, user, turnNumber, bag):
         state = cls()       # new instance of class
+        state.game = game
         state.player = user
         state.turnNumber = turnNumber
         state.bag = bag
