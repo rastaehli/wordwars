@@ -31,3 +31,13 @@ class MakeMoveForm(messages.Message):
 class IdForm(messages.Message):
     """Outbound id value for a persistent entity, such as game state."""
     urlsafe_key = messages.StringField(1, required=True)
+
+class WinLossRecord(messages.Message):
+    """Outbound record of player wins and losses."""
+    name = messages.StringField(1, required=True)
+    wins = messages.IntegerField(2, required=True)
+    losses = messages.IntegerField(3, required=True)
+
+class RankingList(messages.Message):
+    """Outbound list of WinLossRecord."""
+    rankings = messages.MessageField(WinLossRecord, 1, repeated=True)

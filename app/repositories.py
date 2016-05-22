@@ -91,6 +91,13 @@ class GameStateRepository():
         game.players = PlayerStateRepository().findByGame(game)
         return game
 
+    def allCompleted(self):
+        """return all games with mode == 'completed'"""
+        all = GameState.query(GameState.mode == 'over').fetch()
+        for game in all:
+            game.players = PlayerStateRepository().findByGame(game)
+            self.restoreTransients(game)
+        return all
 
 """access persistent collection of PlayerState"""
 class PlayerStateRepository():

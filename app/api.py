@@ -16,7 +16,7 @@ from models import User, GameState
 from repositories import GameStateRepository, UserRepository, PlayerStateRepository
 from print_view import PrintView
 from utils import get_by_urlsafe
-from messages import StringMessage, StringList, GameForm, MakeMoveForm, IdForm
+from messages import StringMessage, StringList, GameForm, MakeMoveForm, IdForm, WinLossRecord, RankingList
 
 
 @endpoints.api(name='api', version='v1',
@@ -56,18 +56,7 @@ class WordWarsApi(remote.Service):
         gameIds.strings = idList
         return gameIds
 
-    @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
-                      response_message=StringMessage,
-                      path='game/{gameid}',
-                      name='cancel_game',
-                      http_method='POST')
-    def cancel_game(self, request):
-        """Mark game as cancelled, with no winner."""
-        game = self.gameById(request.gameid)
-        game.cancel()
-        return StringMessage('Game is cancelled.')
-
-    def gameFormFrom(self, game):
+    def gameFormFrom(self, game, lastPlay):
         """Return game state, including identity of whose turn is next."""
         next = game.nextPlayer()
         if next == None:
@@ -82,7 +71,7 @@ class WordWarsApi(remote.Service):
             return GameForm(
                 urlsafe_key = self.gameDb().id(game),
                 board = game.board,
-                status = game.mode,
+                status = game.mode + ":  " + lastPlay,
                 user_turn = next.player.name,
                 user_letters = next.letters,
                 user_score = next.score)
@@ -112,18 +101,6 @@ class WordWarsApi(remote.Service):
         next = game.nextPlayer()
         return IdForm(urlsafe_key=self.gameDb().id(game))
 
-    @endpoints.method(request_message=endpoints.ResourceContainer(),
-                      response_message=StringList,
-                      path='users',
-                      name='get_all_users',
-                      http_method='GET')
-    def get_all_users(self, request):
-        """Return list of all known users."""
-        nameList = StringList()
-        for u in self.userDb().all():
-            nameList.append(u.name)
-        return nameList
-
     @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
                       response_message=GameForm,
                       path='game/{gameid}',
@@ -132,7 +109,7 @@ class WordWarsApi(remote.Service):
     def get_game(self, request):
         """Return game state for requested ID."""
         game = self.gameById(request.gameid)
-        return self.gameFormFrom(game)
+        return self.gameFormFrom(game, '')
 
     def gameById(self, id):
         game = self.gameDb().findById(id)
@@ -169,23 +146,18 @@ class WordWarsApi(remote.Service):
         game = self.gameById(request.gameid)
         game.start()
         self.gameDb().update(game)
-        return self.gameFormFrom(game)
-
-    def scoreInfo(self, before, total):
-        playScore = total - before
-        if playScore > 5:
-            return StringMessage(message='Good job!  You added {} for a total score of {}.'.format(playScore, total))
-        else:
-            return StringMessage(message='You added {} for a total score of {}.'.format(playScore, total))
+        return self.gameFormFrom(game, '')
 
     @endpoints.method(request_message=endpoints.ResourceContainer( MakeMoveForm, gameid=messages.StringField(1) ),
-                      response_message=StringMessage,
+                      response_message=GameForm,
                       path='game/{gameid}/move',
                       name='make_move',
                       http_method='PUT')
     def make_move(self, request):
         """Add requested word to the board at x,y, across or not."""
         game = self.gameById(request.gameid)
+        if game.nextPlayer().player.name != request.user_name:
+            return self.gameFormFrom(game, 'Not turn yet for '+request.user_name)
         user = self.userDb().findByName(request.user_name)
         if game.gameOver():
             return StringMessage(message='Game already over!')
@@ -196,7 +168,70 @@ class WordWarsApi(remote.Service):
             game.playWord(user, request.x, request.y, request.across, request.word)
         scoreAfter = game.scoreForUser(user)
         self.gameDb().update(game)
-        return self.scoreInfo(scoreBefore, scoreAfter)
+        return self.gameFormFrom(game, self.lastPlayDescription(scoreBefore, scoreAfter))
 
+    def lastPlayDescription(self, before, total):
+        added = total - before
+        if total <= 0:
+            lastPlay = ''
+        else:
+            lastPlay = 'You added {} for a total score of {}.'.format(added, total)
+        if added > 5:
+            lastPlay = 'Good job!  '+lastPlay
+        return lastPlay
+
+    @endpoints.method(request_message=endpoints.ResourceContainer(),
+                      response_message=StringList,
+                      path='users',
+                      name='get_all_users',
+                      http_method='GET')
+    def get_all_users(self, request):
+        """Return list of all known users."""
+        nameList = StringList()
+        for u in self.userDb().all():
+            nameList.append(u.name)
+        return nameList
+
+    @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
+                      response_message=StringMessage,
+                      path='game/{gameid}',
+                      name='cancel_game',
+                      http_method='POST')
+    def cancel_game(self, request):
+        """Mark game as cancelled, with no winner."""
+        game = self.gameById(request.gameid)
+        game.cancel()
+        return StringMessage('Game is cancelled.')
+
+    @endpoints.method(request_message=endpoints.ResourceContainer(),
+                      response_message=RankingList,
+                      path='user/rankings',
+                      name='get_user_rankings',
+                      http_method='GET')
+    def get_user_rankings(self, request):
+        """Return sorted list of the win/loss ratio by player."""
+        wins = {}
+        losses = {}
+        for user in self.users.all():
+            wins[user.name] = 0
+            losses[user.name] = 0
+        for game in self.games.allCompleted():
+            winner = game.leader().player
+            wins[winner.name] += 1
+            for p in game.players:
+                if p.player != winner:
+                    losses[p.player.name]+= 1
+        records = []
+        for userName in wins:
+            records.append(WinLossRecord(
+                name = userName,
+                wins = wins[userName],
+                losses = losses[userName]))
+        return RankingList(
+            # sort highest ratio first
+            rankings = sorted(
+                records,
+                key=lambda record: record.wins/(1+record.losses),
+                reverse=True))
 
 api = endpoints.api_server([WordWarsApi])

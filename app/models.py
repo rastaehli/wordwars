@@ -20,22 +20,22 @@ from google.appengine.ext import ndb
 from random import randint
 from utils import get_by_urlsafe
 
-"""Model of user that can play in a game."""
 class User(ndb.Model):
+    """Model of user that can play in a game."""
     # User may be a player in many games via one PlayerState for each GameState
     name = ndb.StringProperty(required=True)
     email = ndb.StringProperty()
 
-    """Class factory method to create a User."""
     @classmethod
     def create(cls, name, email):
+        """Class factory method to create a User."""
         user = cls()
         user.name = name
         user.email = email
         return user
 
-    """Return unique identity for this User."""
     def identity(self):
+        """Return unique identity for this User."""
         return self.email
 
 # a few declarations to support GameState logic
@@ -58,8 +58,8 @@ MODE_PLAYING='playing'
 MODE_CANCELLED='cancelled'
 MODE_OVER='over'
 
-"""Model of wordwars game state."""
 class GameState(ndb.Model):
+    """Model of wordwars game state."""
     # a GameState is referenced by PlayerState for each player
     letters = ndb.StringProperty(required=True)
     width = ndb.IntegerProperty(required=True)
@@ -70,9 +70,9 @@ class GameState(ndb.Model):
     turn = ndb.IntegerProperty(required=True)
     mode = ndb.StringProperty(required=True)
 
-    """Class factory method to create a GameState."""
     @classmethod
     def create(cls):
+        """Class factory method to create a GameState."""
         game = cls()    # get new ndb.Model instance
         game.mode = MODE_NEW
         game.turn = 0
@@ -87,8 +87,8 @@ class GameState(ndb.Model):
         game.consecutivePasses = 0
         return game
 
-    """Add user as a player in this game."""
     def addPlayer(self, user):
+        """Add user as a player in this game."""
         if self.started():
             raise ValueError('Cannot add player to game in progress.')
         # okay to add players until started with first turn
@@ -97,22 +97,22 @@ class GameState(ndb.Model):
         pState = PlayerState.create(self, user, playerSequence, lettersForPlayer)
         self.players.append(pState)
 
-    """Start the game.  No more players may be added."""
     def start(self):
+        """Start the game.  No more players may be added."""
         self.turn = 0
         self.mode = MODE_PLAYING
         return self.nextPlayer()
 
-    """Cancel the game.  There is no winner."""
     def cancel(self):
+        """Cancel the game.  There is no winner."""
         self.mode = MODE_CANCELLED
 
-    """Return True if game has started."""
     def started(self):
+        """Return True if game has started."""
         return self.mode == MODE_PLAYING
 
-    """Return PlayerState for player with next turn."""
     def nextPlayer(self):
+        """Return PlayerState for player with next turn."""
         if self.mode != MODE_PLAYING:
             return None
         for p in self.players:
@@ -120,34 +120,34 @@ class GameState(ndb.Model):
                 return p
         return None
 
-    """Translate boolean direction to 'across' or 'down'."""
     def directionString(self, across):
+        """Translate boolean direction to 'across' or 'down'."""
         if across:
             return 'across'
         else:
             return 'down'
 
-    """Return PlayerState for user or None."""
     def getPlayerState(self, user):
+        """Return PlayerState for user or None."""
         for p in self.players:
             if p.player.identity() == user.identity():
                 return p
         return None
 
-    """Advance game state to next turn."""
     def incrementTurn(self):
-        self.turn = self.turn + 1
+        """Advance game state to next turn."""
+        self.turn += 1
         if self.turn == len(self.players):
             self.turn = 0
 
-    """Play word as instructed by user."""
     def playWord(self, user, x, y, across, word):
+        """Play word as instructed by user."""
         self.addWordToBoard(self.getPlayerState(user), x, y, across, word)
         self.incrementTurn()
         self.consecutivePasses = 0
 
-    """Implement algorithm for updating board and accumulating score."""
     def addWordToBoard(self, playerState, x, y, across, word):
+        """Implement algorithm for updating board and accumulating score."""
         nextX = x
         nextY = y
         for i in range(len(word)):
@@ -158,22 +158,28 @@ class GameState(ndb.Model):
                 nextY = y + i
             self.addLetterToBoard(playerState, nextX, nextY, letter)
 
-    """Implement algorithm for adding single letter to the board."""
     def addLetterToBoard(self, playerState, x, y, letter):
+        """Implement algorithm for adding single letter to the board."""
         if self.letter(x,y) == '_':
             playerState.bag.remove(letter)  # raises error if not there
             self.setBoardContent(x,y,letter)
         playerState.score = playerState.score + letterValue[letter]
 
-    """Advance turn without playing a word."""
     def skipTurn(self, user):
+        """Advance turn without playing a word."""
         ps = self.getPlayerState(user)  # confirm it is this user's turn
         self.consecutivePasses += 1
+        if self.consecutivePasses >= len(self.players):
+            self.mode = MODE_OVER
         self.incrementTurn()
 
-    """Return True if game is over."""
     def gameOver(self):
-        return self.consecutivePasses >= len(self.players)
+        """Return True if game is complete/over or cancelled."""
+        return self.mode == MODE_OVER or self.mode == MODE_CANCELLED
+
+    def gameComplete(self):
+        """Return True if game is over."""
+        return self.mode == MODE_OVER
 
     def boardIndex(self, x,y):
         i = x + (y * self.width)
@@ -187,33 +193,35 @@ class GameState(ndb.Model):
     def setBoardContent(self, x, y, letter):
         self.boardContent[ self.boardIndex(x,y) ] = letter
 
-    """Return PlayerState with current high score."""
     def leader(self):
+        """Return PlayerState with current high score."""
+        if not self.players:
+            return None
         leader = self.players[0]
         for p in self.players:
             if p.score > leader.score:
                 leader = p
         return leader
 
-    """Return current score for user."""
     def scoreForUser(self, user):
+        """Return current score for user."""
         for p in self.players:
             if p.player.identity() == user.identity():
                 return p.score
         raise ValueError('user {} is not a player'.format(user.name))
 
 
-"""Part of a gameState that describes player."""
 class PlayerState(ndb.Model):
+    """Part of a gameState that describes player."""
     gameKey = ndb.KeyProperty(required=True, kind='GameState')
     userKey = ndb.KeyProperty(required=True, kind='User')
     turnNumber = ndb.IntegerProperty(required=True)
     letters = ndb.StringProperty(required=True)
     score = ndb.IntegerProperty(required=True)
 
-    """Class factory method to create a PlayerState."""
     @classmethod
     def create(cls, game, user, turnNumber, bag):
+        """Class factory method to create a PlayerState."""
         state = cls()       # new instance of class
         state.game = game
         state.player = user
@@ -222,49 +230,49 @@ class PlayerState(ndb.Model):
         state.score = 0
         return state
 
-"""Store count of letters held."""
 class LetterBag():
+    """Store count of letters held."""
 
     def __init__(self):
         self.map = {}
         for l in alphabet:
             self.map[l] = 0
 
-    """Construct a LetterBag from string."""
     @classmethod
     def fromString(cls, s):
+        """Construct a LetterBag from string."""
         bag = cls()
         for l in s:
             bag.add(l)
         return bag
 
-    """Construct a LetterBag with WordWars standard initial set."""
     @classmethod
     def standardSet(cls):
+        """Construct a LetterBag with WordWars standard initial set."""
         bag = LetterBag()
         for l in alphabet:
             for i in range(duplicates(l)):
                 bag.add(l)
         return bag
 
-    """Add a letter to this bag."""
     def add(self, l):
+        """Add a letter to this bag."""
         self.map[l] += 1
 
-    """Add all letters from another bag to this bag."""
     def addAll(self, bag):
+        """Add all letters from another bag to this bag."""
         for l in alphabet:
             self.map[l] += bag.map[l]
 
-    """Remove letter l from this bag."""
     def remove(self, l):
+        """Remove letter l from this bag."""
         if self.map[l] > 0:
             self.map[l] -= 1
         else:
             raise ValueError('no letter {} to remove'.format(l))
 
-    """Remove and return 'count' random letters from this bag."""
     def removeRandom(self, count):
+        """Remove and return 'count' random letters from this bag."""
         removed = LetterBag()
         selfSize = self.contentCount()
         for i in range(count):
@@ -275,14 +283,14 @@ class LetterBag():
             removed.add(l)
         return removed
 
-    """Remove the ith letter (alphabetic order) from bag."""
     def removeByIndex(self, i):
+        """Remove the ith letter (alphabetic order) from bag."""
         l = self.letterAtIndex(i)
         self.remove(l)
         return l
 
-    """Compute ith letter (alphabetic order) in bag."""
     def letterAtIndex(self, i):
+        """Compute ith letter (alphabetic order) in bag."""
         lettersToGo = i
         for l in alphabet:
             if self.map[l] > lettersToGo:
@@ -290,21 +298,21 @@ class LetterBag():
             else:
                 lettersToGo -= self.map[l] # skip past this letter
 
-    """Return count of all letters in bag."""
     def contentCount(self):
+        """Return count of all letters in bag."""
         count = 0
         for l in alphabet:
             count += self.map[l]
         return count
 
-    """Return string representation of bag contents."""
     def asString(self):
+        """Return string representation of bag contents."""
         letters = ""
         for l in alphabet:
             for i in range(self.map[l]):
                 letters += l
         return letters
 
-    """Return string representation of my map."""
     def __repr__(self):
+        """Return string representation of my map."""
         return self.map.__repr__()
