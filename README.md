@@ -50,37 +50,13 @@ API
 	- make a move with the 'make_move' request, pass/skip your turn when 'word' value is empty
 
  - **get_user_games**
- 	- NOT YET IMPLEMENTED
-    - This returns all of a User's active games. <todo what if the player prevented concurrent games? Maybe this should be a list of all games (active or not) that the user is related to>
-    - You may want to modify the `User` and `Game` models to simplify this type
-    of query. **Hint:** it might make sense for each game to be a `descendant` 
-    of a `User`.
+    - This returns all of a User's active games.
     
  - **cancel_game**
- 	- NOT YET IMPLEMENTED
-    - This endpoint allows users to cancel a game in progress.
-    You could implement this by deleting the Game model itself, or add a Boolean field such as 'cancelled' to the model.     Ensure that Users are not permitted to remove *completed* games.
-    
- - **get_high_scores**
- 	- NOT YET IMPLEMENTED
-    - Remember how you defined a score in Task 2?
-    Now we will use that to generate a list of high scores in descending order, a leader-board!
-    - Accept an optional parameter `number_of_results` that limits the number of results returned.
-    - Note: If you choose to implement a 2-player game this endpoint is not required.
-    
+    - cancel a game in progress.
+        
  - **get_user_rankings**
- 	- NOT YET IMPLEMENTED
-    - Come up with a method for ranking the performance of each player.
-      For "Guess a Number" this could be by winning percentage with ties broken by the average number of guesses.
-    - Create an endpoint that returns this player ranking. The results should include each Player's name and the 'performance' indicator (eg. win/loss ratio).
+    - return ranking of each player by win/loss ratio.
  
  - **get_game_history**
- 	- NOT YET IMPLEMENTED
-    - Your API Users may want to be able to see a 'history' of moves for each game.
-    - For example, Chess uses a format called <a href="https://en.wikipedia.org/wiki/Portable_Game_Notation" target="_blank">PGN</a>) which allows any game to be replayed and watched move by move.
-    - Add the capability for a Game's history to be presented in a similar way. For example: If a User made played 'Guess a Number' with the moves:
-    (5, 8, 7), and received messages such as: ('Too low!', 'Too high!',
-    'You win!'), an endpoint exposing the game_history might produce something like:
-    [('Guess': 5, result: 'Too low'), ('Guess': 8, result: 'Too high'),
-    ('Guess': 7, result: 'Win. Game over')].
-    - Adding this functionality will require some additional properties in the 'Game' model along with a Form, and endpoint to present the data to the User.
+    - shows 'history' of moves for a game.

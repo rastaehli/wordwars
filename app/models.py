@@ -333,7 +333,6 @@ class Move(ndb.Model):
     @classmethod
     def create(cls, game, user, word, across, x, y, score):
         """Class factory method to create a User."""
-        print('========= creating move')
         move = cls()
         move.game = game  # set gameKey from this game
         move.user = user  # set userKey from this user

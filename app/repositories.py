@@ -170,7 +170,6 @@ class MoveRepository():
     def historyForGame(self, game):
         """return list of moves from this game"""
         list =  Move.query(Move.gameKey==game.key).fetch()
-        print('========history for game fetched {} moves'.format(len(list)))
         for move in list:
             move.game = game
             move.user = self.getPlayer(game, move)

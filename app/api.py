@@ -173,7 +173,6 @@ class WordWarsApi(remote.Service):
         scoreAfter = game.scoreForUser(user)
         self.gameDb().update(game)
         # keep history of moves
-        print('===============register a move')
         self.moves.register(Move.create(game, user, word, across, x, y, scoreAfter - scoreBefore))
         return self.gameFormFrom(game, self.lastPlayDescription(scoreBefore, scoreAfter))
 
@@ -248,9 +247,7 @@ class WordWarsApi(remote.Service):
                       http_method='GET')
     def get_game_history(self, request):
         """Return sorted list of the win/loss ratio by player."""
-        print('=======================in get game history====')
         game = self.gameById(request.gameid)
-        print('=======================got game====')
         moveList = []
         for move in self.moves.historyForGame(game):
             moveList.append(MoveRecord(
