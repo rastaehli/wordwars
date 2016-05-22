@@ -12,14 +12,13 @@ from protorpc import remote, messages
 # from google.appengine.api import memcache
 # from google.appengine.api import taskqueue
 
-from models import User, GameState
-from repositories import GameStateRepository, UserRepository, PlayerStateRepository
+from models import User, GameState, Move
+from repositories import GameStateRepository, UserRepository, PlayerStateRepository, MoveRepository
 from print_view import PrintView
 from utils import get_by_urlsafe
-from messages import StringMessage, StringList, GameForm, MakeMoveForm, IdForm, WinLossRecord, RankingList
+from messages import StringMessage, StringList, GameForm, MakeMoveForm, IdForm, WinLossRecord, RankingList, MoveList, MoveRecord
 
-
-@endpoints.api(name='api', version='v1',
+@endpoints.api(name='wordwars', version='v1',
     # grant access to ourselves and google's api_explorer also.
     allowed_client_ids=['wordwars-1311', endpoints.API_EXPLORER_CLIENT_ID])
 class WordWarsApi(remote.Service):
@@ -27,6 +26,7 @@ class WordWarsApi(remote.Service):
     def __init__(self):
         self.games = GameStateRepository()
         self.users = UserRepository()
+        self.moves = MoveRepository()
 
     @endpoints.method(request_message=endpoints.ResourceContainer( name=messages.StringField(1), email=messages.StringField(2) ),
                       response_message=StringMessage,
@@ -159,15 +159,22 @@ class WordWarsApi(remote.Service):
         if game.nextPlayer().player.name != request.user_name:
             return self.gameFormFrom(game, 'Not turn yet for '+request.user_name)
         user = self.userDb().findByName(request.user_name)
+        word = request.word
+        across = request.across
+        x = request.x
+        y = request.y
         if game.gameOver():
             return StringMessage(message='Game already over!')
         scoreBefore = game.scoreForUser(user)
         if len(request.word) <= 0:
             game.skipTurn(user)
         else:
-            game.playWord(user, request.x, request.y, request.across, request.word)
+            game.playWord(user, x, y, across, word)
         scoreAfter = game.scoreForUser(user)
         self.gameDb().update(game)
+        # keep history of moves
+        print('===============register a move')
+        self.moves.register(Move.create(game, user, word, across, x, y, scoreAfter - scoreBefore))
         return self.gameFormFrom(game, self.lastPlayDescription(scoreBefore, scoreAfter))
 
     def lastPlayDescription(self, before, total):
@@ -233,5 +240,30 @@ class WordWarsApi(remote.Service):
                 records,
                 key=lambda record: record.wins/(1+record.losses),
                 reverse=True))
+
+    @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
+                      response_message=MoveList,
+                      path='game/{gameid}/history',
+                      name='get_game_history',
+                      http_method='GET')
+    def get_game_history(self, request):
+        """Return sorted list of the win/loss ratio by player."""
+        print('=======================in get game history====')
+        game = self.gameById(request.gameid)
+        print('=======================got game====')
+        moveList = []
+        for move in self.moves.historyForGame(game):
+            moveList.append(MoveRecord(
+                user_name = move.user.name,
+                x = move.x,
+                y = move.y,
+                across = move.across,
+                word = move.word,
+                moveScore = move.moveScore,
+                time = move.time))
+        # return sorted by time
+        return MoveList(
+            moves = sorted(moveList, key=lambda move: move.time))
+
 
 api = endpoints.api_server([WordWarsApi])

@@ -1,10 +1,10 @@
 from models import User, GameState, PlayerState
 
-"""Utility view object to print world wars model."""
 class PrintView(object):
+	"""Utility view object to print world wars model."""
 
-	"""Print game state to console."""
 	def showGameState(self, gameState):
+		"""Print game state to console."""
 		print("Board:")
 		boardString = ''.join(gameState.boardContent)
 		for y in range(gameState.height):

@@ -19,6 +19,7 @@ sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 from google.appengine.ext import ndb
 from random import randint
 from utils import get_by_urlsafe
+import datetime
 
 class User(ndb.Model):
     """Model of user that can play in a game."""
@@ -316,3 +317,30 @@ class LetterBag():
     def __repr__(self):
         """Return string representation of my map."""
         return self.map.__repr__()
+
+
+class Move(ndb.Model):
+    """Model of a move played in a game."""
+    gameKey = ndb.KeyProperty(required=True, kind='GameState')
+    userKey = ndb.KeyProperty(required=True, kind='User')
+    time = ndb.DateTimeProperty(required=True)
+    moveScore = ndb.IntegerProperty(required=True)
+    word = ndb.StringProperty(required=True)
+    across = ndb.BooleanProperty(required=False)
+    x = ndb.IntegerProperty(required=False)
+    y = ndb.IntegerProperty(required=False)
+
+    @classmethod
+    def create(cls, game, user, word, across, x, y, score):
+        """Class factory method to create a User."""
+        print('========= creating move')
+        move = cls()
+        move.game = game  # set gameKey from this game
+        move.user = user  # set userKey from this user
+        move.word = word
+        move.across = across
+        move.x = x
+        move.y = y
+        move.moveScore = score
+        move.time = datetime.datetime.now()
+        return move

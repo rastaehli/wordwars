@@ -13,66 +13,59 @@ sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 from google.appengine.ext import ndb
 from random import randint
 from utils import get_by_urlsafe
-from models import User, GameState, PlayerState, LetterBag
+from models import User, GameState, PlayerState, LetterBag, Move
 
 
-"""access persistent collection of User"""
 class UserRepository():
+    """access persistent collection of User"""
 
-    """add user to this collection and set its identity"""
     def register(self, user):
-        if user.key == None:
-            user.put()
-        return user
+        """add user to this collection and set its identity"""
+        return self.update(user)
 
-    """update user in this collection"""
     def update(self, user):
+        """update user in this collection"""
         user.put()
         return user
 
-    """return identity of this user"""
     def id(self, user):
+        """return identity of this user"""
         return user.key.urlsafe()
 
-    """return user with this id"""
     def findById(self, id):
+        """return user with this id"""
         return get_by_urlsafe(id, User)
 
-    """return user with this name"""
     def findByName(self, name):
+        """return user with this name"""
         return User.query(User.name == name).get()
 
-    """return list of all users"""
     def all(self):
+        """return list of all users"""
         return User.query().fetch()
 
 
-"""access persistent collection of GameState"""
 class GameStateRepository():
+    """access persistent collection of GameState"""
 
-    """add gameState and its parts to this collection and set its identity"""
     def register(self, gameState):
-        self.setPersistents(gameState)
-        gameState.put()
-        for p in gameState.players:
-            p.gameKey = gameState.key
-            PlayerStateRepository().register(p)
-        return gameState
+        """add gameState and its parts to this collection and set its identity"""
+        return self.update(gameState)
 
-    """set persistent fields from transient values"""
     def setPersistents(self, state):
+        """set persistent fields from transient values"""
         state.letters = state.bagOfLetters.asString()  # set persistent field from transient state
         state.board = ''.join(state.boardContent)      # set persistent field from transient state
         return state
 
-    """set transient values from persistent fields"""
     def restoreTransients(self, state):
+        """set transient values from persistent fields"""
         state.bagOfLetters = LetterBag.fromString(state.letters)
         state.boardContent = list(state.board)    # easier to access content as a list
         return state
 
-    """update persistent gameState and its parts in this collection"""
     def update(self, gameState):
+        """update persistent gameState and its parts in this collection"""
         self.setPersistents(gameState)
         gameState.put()
         for p in gameState.players:
@@ -80,12 +73,12 @@ class GameStateRepository():
             PlayerStateRepository().update(p)
         return gameState
 
-    """return identity for this gameState"""
     def id(self, gameState):
+        """return identity for this gameState"""
         return gameState.key.urlsafe()
 
-    """return gameState with this id"""
     def findById(self, id):
+        """return gameState with this id"""
         game = get_by_urlsafe(id, GameState)
         self.restoreTransients(game)
         game.players = PlayerStateRepository().findByGame(game)
@@ -99,56 +92,93 @@ class GameStateRepository():
             self.restoreTransients(game)
         return all
 
-"""access persistent collection of PlayerState"""
 class PlayerStateRepository():
+    """access persistent collection of PlayerState"""
 
-    """add playerState to collection and set unique identity"""
     def register(self, p):
-        UserRepository().register(p.player)
-        self.setPersistents(p)
-        p.put()
-        return p
+        """add playerState to collection and set unique identity"""
+        return self.update(p)
 
-    """update playerState in collection"""
     def update(self, p):
+        """update playerState in collection"""
         UserRepository().update(p.player)
         self.setPersistents(p)
         p.put()
         return p
 
-    """return unique identity for player"""
     def id(self, p):
+        """return unique identity for player"""
         return p.key.urlsafe()
 
-    """set persistent fields from transient values"""
     def setPersistents(self, state):
+        """set persistent fields from transient values"""
         state.gameKey = state.game.key
         state.userKey = state.player.key
         state.letters = state.bag.asString()
         return state
 
-    """set (derive) transient values from persistent fields"""
     def restoreTransients(self, state):
+        """set (derive) transient values from persistent fields"""
         state.game = state.gameKey.get()
         state.player = state.userKey.get()
         state.bag = LetterBag.fromString(state.letters)
         return state
 
-    """return player with this id"""
     def findById(self, id):
+        """return player with this id"""
         p = get_by_urlsafe(id, PlayerState)
         return self.restoreTransients(p)
 
-    """return list of players in this game"""
     def findByGame(self, game):
+        """return list of players in this game"""
         list =  PlayerState.query(PlayerState.gameKey==game.key).fetch()
         for p in list:
             self.restoreTransients(p)
         return list
 
-    """return list of game-player roles for this user"""
     def findByUser(self, user):
+        """return list of game-player roles for this user"""
         list =  PlayerState.query(PlayerState.userKey==user.key).fetch()
         for p in list:
             self.restoreTransients(p)
         return list
+
+
+class MoveRepository():
+    """access persistent collection of Move"""
+
+    def register(self, move):
+        """add move to collection and set unique identity"""
+        return self.update(move)
+
+    def update(self, move):
+        """update move in collection"""
+        self.setPersistents(move)
+        move.put()
+        return move
+
+    def setPersistents(self, move):
+        """set persistent fields from transient values"""
+        move.gameKey = move.game.key
+        move.userKey = move.user.key
+        return move
+
+    def id(self, move):
+        """return unique identity for move"""
+        return move.key.urlsafe()
+
+    def historyForGame(self, game):
+        """return list of moves from this game"""
+        list =  Move.query(Move.gameKey==game.key).fetch()
+        print('========history for game fetched {} moves'.format(len(list)))
+        for move in list:
+            move.game = game
+            move.user = self.getPlayer(game, move)
+        return list
+
+    def getPlayer(self, game, move):
+        """get user for this move from game by userKey"""
+        for p in game.players:
+            if p.player.key == move.userKey:
+                return p.player
+        return None
