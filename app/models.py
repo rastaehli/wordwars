@@ -78,8 +78,8 @@ class GameState(ndb.Model):
         game.mode = MODE_NEW
         game.turn = 0
         game.bagOfLetters = LetterBag.standardSet()
-        game.width = 17
-        game.height = 17
+        game.width = 10
+        game.height = 10
         game.boardContent = []
         for x in range(game.width):
             for y in range(game.height):
@@ -110,7 +110,11 @@ class GameState(ndb.Model):
 
     def started(self):
         """Return True if game has started."""
-        return self.mode == MODE_PLAYING
+        return self.mode != MODE_NEW
+
+    def cancelled(self):
+        """Return True if game has been cancelled."""
+        return self.mode == MODE_CANCELLED
 
     def nextPlayer(self):
         """Return PlayerState for player with next turn."""
@@ -143,7 +147,14 @@ class GameState(ndb.Model):
 
     def playWord(self, user, x, y, across, word):
         """Play word as instructed by user."""
-        self.addWordToBoard(self.getPlayerState(user), x, y, across, word)
+        playerState = self.getPlayerState(user)
+        print('==========playing {} for {}'.format(word,user.name))
+        self.addWordToBoard(playerState, x, y, across, word)
+        print('==========played')
+        lettersPlayed = 7 - playerState.bag.contentCount()
+        print('==========lettersPlayed = {}'.format(lettersPlayed))
+        playerState.bag.addAll(self.bagOfLetters.removeRandom(lettersPlayed))
+        print('==========letters for next turn: {}'.format(playerState.bag.asString()))
         self.incrementTurn()
         self.consecutivePasses = 0
 
@@ -162,7 +173,9 @@ class GameState(ndb.Model):
     def addLetterToBoard(self, playerState, x, y, letter):
         """Implement algorithm for adding single letter to the board."""
         if self.letter(x,y) == '_':
+            print('====removing letter {} from bag'.format(letter))
             playerState.bag.remove(letter)  # raises error if not there
+            print('====bag letters: {}'.format(playerState.bag.asString()))
             self.setBoardContent(x,y,letter)
         playerState.score = playerState.score + letterValue[letter]
 
@@ -262,7 +275,9 @@ class LetterBag():
 
     def addAll(self, bag):
         """Add all letters from another bag to this bag."""
+        print('=====addAll: ')
         for l in alphabet:
+            print('===== adding {} of letter {}'.format(bag.map[l], l))
             self.map[l] += bag.map[l]
 
     def remove(self, l):
@@ -308,7 +323,7 @@ class LetterBag():
 
     def asString(self):
         """Return string representation of bag contents."""
-        letters = ""
+        letters = ''
         for l in alphabet:
             for i in range(self.map[l]):
                 letters += l

@@ -20,6 +20,16 @@ class GameForm(messages.Message):
     user_turn = messages.StringField(4, required=True)
     user_letters = messages.StringField(5, required=True)
     user_score = messages.IntegerField(6, required=True)
+    y0 = messages.StringField(7, required=True)
+    y1 = messages.StringField(8, required=True)
+    y2 = messages.StringField(9, required=True)
+    y3 = messages.StringField(10, required=True)
+    y4 = messages.StringField(11, required=True)
+    y5 = messages.StringField(12, required=True)
+    y6 = messages.StringField(13, required=True)
+    y7 = messages.StringField(14, required=True)
+    y8 = messages.StringField(15, required=True)
+    y9 = messages.StringField(16, required=True)
 
 class MakeMoveForm(messages.Message):
     """Input fields to request a word be added at x,y, across/down, by user."""

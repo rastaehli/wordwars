@@ -79,9 +79,12 @@ class GameStateRepository():
 
     def findById(self, id):
         """return gameState with this id"""
-        game = get_by_urlsafe(id, GameState)
-        self.restoreTransients(game)
-        game.players = PlayerStateRepository().findByGame(game)
+        try:
+            game = get_by_urlsafe(id, GameState)
+            self.restoreTransients(game)
+            game.players = PlayerStateRepository().findByGame(game)
+        except Exception:
+            game = None
         return game
 
     def allCompleted(self):
