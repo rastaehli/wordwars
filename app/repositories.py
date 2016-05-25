@@ -88,8 +88,16 @@ class GameStateRepository():
         return game
 
     def allCompleted(self):
-        """return all games with mode == 'completed'"""
+        """Return all games in completed state."""
         all = GameState.query(GameState.mode == 'over').fetch()
+        for game in all:
+            game.players = PlayerStateRepository().findByGame(game)
+            self.restoreTransients(game)
+        return all
+
+    def allActive(self):
+        """Return all games in active state."""
+        all = GameState.query(GameState.mode == 'running').fetch()
         for game in all:
             game.players = PlayerStateRepository().findByGame(game)
             self.restoreTransients(game)
@@ -184,3 +192,41 @@ class MoveRepository():
             if p.player.key == move.userKey:
                 return p.player
         return None
+
+
+# constants describing types of notifications.
+YOUR_TURN = 'your turn'
+
+class NotificationRepository():
+    """Keep persistent collection of Notification emails sent."""
+
+    def getUsersRecentlyNotified(self):
+        "Return list of users who have been sent email in the last 24 hours."
+        now = datetime.datetime.now()
+        return Notification.query( (now - Notification.creationTime).total_hours() <= 24 ).fetch()
+
+    def registerTurnNotification(self, user, game):
+        "Register an It's Your Turn email has been sent to user."
+        self.register(Notification.create(game, user, YOUR_TURN))
+
+    def register(self, note):
+        """add note to collection and set unique identity"""
+        return self.update(note)
+
+    def update(self, note):
+        """update note in collection"""
+        self.setPersistents(note)
+        note.put()
+        return note
+
+    def setPersistents(self, note):
+        """set persistent fields from transient values"""
+        note.gameKey = note.game.key
+        note.userKey = note.user.key
+        return note
+
+    def restoreTransients(self, note):
+        """set (derive) transient values from persistent fields"""
+        note.note = note.gameKey.get()
+        note.user = note.userKey.get()
+        return note

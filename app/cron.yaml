@@ -1,0 +1,4 @@
+cron:
+- description: Send a reminder email to all users who have not played since their turn came up.
+  url: /crons/turn_notification
+  schedule: every 5 minute

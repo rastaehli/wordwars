@@ -70,6 +70,7 @@ class GameState(ndb.Model):
     createdTime = ndb.DateTimeProperty(auto_now_add=True)
     turn = ndb.IntegerProperty(required=True)
     mode = ndb.StringProperty(required=True)
+    lastUpdate = ndb.DateTimeProperty(auto_now=True)
 
     @classmethod
     def create(cls):
@@ -148,13 +149,9 @@ class GameState(ndb.Model):
     def playWord(self, user, x, y, across, word):
         """Play word as instructed by user."""
         playerState = self.getPlayerState(user)
-        print('==========playing {} for {}'.format(word,user.name))
         self.addWordToBoard(playerState, x, y, across, word)
-        print('==========played')
         lettersPlayed = 7 - playerState.bag.contentCount()
-        print('==========lettersPlayed = {}'.format(lettersPlayed))
         playerState.bag.addAll(self.bagOfLetters.removeRandom(lettersPlayed))
-        print('==========letters for next turn: {}'.format(playerState.bag.asString()))
         self.incrementTurn()
         self.consecutivePasses = 0
 
@@ -173,9 +170,7 @@ class GameState(ndb.Model):
     def addLetterToBoard(self, playerState, x, y, letter):
         """Implement algorithm for adding single letter to the board."""
         if self.letter(x,y) == '_':
-            print('====removing letter {} from bag'.format(letter))
             playerState.bag.remove(letter)  # raises error if not there
-            print('====bag letters: {}'.format(playerState.bag.asString()))
             self.setBoardContent(x,y,letter)
         playerState.score = playerState.score + letterValue[letter]
 
@@ -244,6 +239,25 @@ class PlayerState(ndb.Model):
         state.score = 0
         return state
 
+
+class Notification(ndb.Model):
+    """Part of a gameState that describes player."""
+    gameKey = ndb.KeyProperty(required=True, kind='GameState')
+    userKey = ndb.KeyProperty(required=True, kind='User')
+    description = ndb.StringProperty(required=True)
+    createdTime = ndb.DateTimeProperty(auto_now_add=True)
+
+    @classmethod
+    def create(cls, game, user, description):
+        """Class factory method to create a PlayerState."""
+        print('++++++++++++creating notification for {}'.format(user.name))
+        note = cls()       # new instance of class
+        note.game = game
+        note.user = user
+        note.description = description
+        return note
+
+
 class LetterBag():
     """Store count of letters held."""
 
@@ -275,9 +289,7 @@ class LetterBag():
 
     def addAll(self, bag):
         """Add all letters from another bag to this bag."""
-        print('=====addAll: ')
         for l in alphabet:
-            print('===== adding {} of letter {}'.format(bag.map[l], l))
             self.map[l] += bag.map[l]
 
     def remove(self, l):
