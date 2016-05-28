@@ -45,7 +45,7 @@ class WordWarsApi(remote.Service):
         if not EMAIL_REGEX.match(request.email):
             raise endpoints.BadRequestException('Email address is not valid: {}'.format(request.email))
         user = User.create(request.name, request.email)
-        self.users().register(user)
+        self.users.register(user)
         return StringMessage(message='User {} created!'.format(request.name))
 
     @endpoints.method(request_message=endpoints.ResourceContainer(user_name=messages.StringField(1)),
@@ -232,10 +232,10 @@ class WordWarsApi(remote.Service):
                       http_method='GET')
     def get_all_users(self, request):
         """Return list of all known users."""
-        nameList = StringList()
+        nameList = []
         for u in self.users.all():
             nameList.append(u.name)
-        return nameList
+        return StringList(strings = nameList)
 
     @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
                       response_message=StringMessage,

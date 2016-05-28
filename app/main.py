@@ -17,6 +17,7 @@ class TurnNotification(webapp2.RequestHandler):
         Send a reminder email (only once) to each with instructions to play.
         Called every few minutes using a cron job.  See cron.yaml"""
 
+        print('============in TurnNotification============')
         #get all games in play
         activeGames = GameStateRepository().allActive()
         #get those NOT updated in the last five minutes
@@ -39,6 +40,7 @@ class TurnNotification(webapp2.RequestHandler):
             notifications.registerTurnNotification(user, game)
             subject = 'This is a reminder!'
             body = 'Hello {}, its your turn to play WordWars!'.format(user.name)
+            print('=====sending email to {}'.format(user.name))
             mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),
                            user.email,
                            subject,
