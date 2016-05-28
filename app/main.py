@@ -6,7 +6,6 @@ import logging
 
 import webapp2
 from google.appengine.api import mail, app_identity
-from api import GuessANumberApi
 from repositories import GameStateRepository
 
 from models import User, GameState
@@ -28,13 +27,16 @@ class TurnNotification(webapp2.RequestHandler):
         usersUp = [game.nextPlayer().user for game in idleGames]
 
         #filter by those who have not been notified in the last day
-        usersNotified = NotificationRepository().getUsersRecentlyNotified()
+        notifications = NotificationRepository()
+        usersNotified = notifications.getUsersRecentlyNotified()
         usersToNotify = [user for user in usersUp if not usersNotified.contains[user.name)]
 
         #send email notification
         app_id = app_identity.get_application_id()
         users = User.query(User.email != None)
         for user in usersToNotify:
+            # remember notification so we don't harass the user repeatedly
+            notifications.registerTurnNotification(user, game)
             subject = 'This is a reminder!'
             body = 'Hello {}, its your turn to play WordWars!'.format(user.name)
             mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),

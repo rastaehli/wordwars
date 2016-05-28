@@ -12,7 +12,7 @@ handlers:
 - url: /_ah/spi/.*
   script: api.api
 
-- url: /crons/send_one_turn_notification
+- url: /crons/turn_notification
   script: main.app
 
 libraries:

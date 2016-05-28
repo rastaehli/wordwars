@@ -1,0 +1,54 @@
+Reflection on the Design of the WordWars project.
+
+=== Primary Model Entities ===
+
+GameState: This is the central model with properties representing:
+- the current crossword board contents,
+- the players (see PlayerState),
+- whose turn it is, and
+- the letters to draw from after each turn.
+
+In addition, I found it convienient to add a property to count how many players had passed on their turns to help detect when the game was over.
+
+PlayerState: The players each have their own game-specific state with properties representing:
+- the user (see User),
+- the letters held by that user,
+- this player's order of play (turn number), and
+- the player's current score
+
+User: The user is modelled independently, so one user can play in many games:
+- user name, and
+- email address
+
+=== Adding Properties to Support Persistence ===
+
+I preferred to have a single Python class for each Model entity, so I extended the above models to support persistence in Google Datastore by following Datastore requirements for declaring persistent properties and creating a separate "create" factory class method to construct instances with properties that may or may not be persistent.  For example, each GameState is constructed with a list of PlayerState objects for each player and each PlayerState is constructed with the GameState that it plays in, but the player list and the game property of each player are not declared as ndb properties.  Instead, when the application saves a GameState to DataStore it first sets the persistent properties from these transient (not persistent) values.  For the PlayerState, it stores the GameState key in the declared ndb.KeyProperty field.
+
+Other than the persistent property declarations of the models, all other details of how this application uses Google's Datastore model has been encapsulated in repository classes that provide application specific store/retrieve functions.  For example, the GameStateRepository class implements an 'allActive()' method to retrieve just the games that are currently active.
+
+=== Extending the Application ===
+
+get_user_rankings:  
+This API extension  was quite easy: just a little new logic to query completed games for winners/losers and new Message forms to return the user rankings.
+
+get_game_history:
+This API extension required history I did not have in the database.  I had to create a new model class Move and record these during each successful make_move API call.  Still, this required few changes to the rest of the application, so it was another good indication that the application is easy to extend.
+
+turn_notification:
+This handler invoked by the cron job sends (one) email to users who haven't played their turn in five minutes was harder.  To learn which games had been idle for a five minutes required the addition of GameState.lastUpdate time.  (Perhaps I could have used the time from the Move history, but that would have complicated the query logic.)  I also had to create a new record of emails sent for a game and user so the game could avoid sending repeated emails.
+
+=== Greatest Difficulty ===
+The greatest difficulty was with the logic of legal moves and scoring.  Ideally, the game would validate not only that the words played are valid in some game dictionary, but also ensure that all words formed via letters adjacent to the play are valid.  Likewise, the game should score all new words formed by the letters played in every direction.  This was beyond my ambition for this project, so I settled for leaving word validation to the user and scoring only letters in the word played.
+
+Even with this minimal game logic, I found it helped greatly to be able to unit test my model objects while ignoring Datastore persistence and Google Endpoints API aspects.
+
+=== Lessons Learned with Google Endpoints, Datastore, App Engine ===
+On the one hand, it is remarkably easy to write and deploy a Python Google Endpoints Application via the GoogleAppEngineLauncher.  On the other, it is still very frustrating to debug such an application when things go wrong.  I had several memorable problems:
+1) When I failed to include the "@endpoints.api(name='wordwars',..." annotation above my API class, attempting to use the api explorer would result in a cryptic "'WordWarsApi' has no attribute 'api_info'" message.
+2) When I forgot to include the path parameter 'gameId' from the URL path '/games/{gameId}' in the ResourceContainer request declaration, the api explorer would only report "KeyError: 'gameid'" after an otherwise useless stack dump from the endpoints __register_services code.
+
+These and similar errors suggest that the api explorer needs better feeback about where in the API the error is occurring.  In the first case, it could have detected and reported the problem when parsing the API class declaration.  In the second case, it could have reported which API method had the problem with the "KeyError".
+
+
+
+
