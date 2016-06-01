@@ -4,6 +4,11 @@
 cronjobs."""
 import logging
 
+import sys
+sys.path.insert(1, '/usr/local/google_appengine/lib/webapp2-2.5.2')
+sys.path.insert(2, '/usr/local/google_appengine/lib/webob-1.2.3')
+sys.path.insert(3, '/usr/local/google_appengine')
+
 import webapp2
 from google.appengine.api import mail, app_identity
 from repositories import GameStateRepository
@@ -30,7 +35,7 @@ class TurnNotification(webapp2.RequestHandler):
         #filter by those who have not been notified in the last day
         notifications = NotificationRepository()
         usersNotified = notifications.getUsersRecentlyNotified()
-        usersToNotify = [user for user in usersUp if not usersNotified.contains[user.name)]
+        usersToNotify = [user for user in usersUp if not user.name in usersNotified]
 
         #send email notification
         app_id = app_identity.get_application_id()
