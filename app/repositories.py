@@ -6,14 +6,16 @@ The Repository pattern is used.  For an ndb.Model m and EntityRepository MReposi
     - call MRepository().update(m) to save changes made to m (raises an error if m has not been registered)
 """
 
-import sys
-sys.path.insert(1, '/usr/local/google_appengine')
-sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
+# had to add sys.path.inserts to resolve imports when run from unit test (as opposed to dev_appserver)
+# import sys
+# sys.path.insert(1, '/usr/local/google_appengine')
+# sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 
 from google.appengine.ext import ndb
 from random import randint
 from utils import get_by_urlsafe
-from models import User, GameState, PlayerState, LetterBag, Move
+from models import User, GameState, PlayerState, LetterBag, Move, Notification
+import datetime
 
 
 class UserRepository():
@@ -203,7 +205,8 @@ class NotificationRepository():
     def getUsersRecentlyNotified(self):
         "Return list of users who have been sent email in the last 24 hours."
         now = datetime.datetime.now()
-        return Notification.query( (now - Notification.creationTime).total_hours() <= 24 ).fetch()
+        yesterday = now - datetime.timedelta(days=1)
+        return Notification.query( Notification.createdTime > yesterday ).fetch()
 
     def registerTurnNotification(self, user, game):
         "Register an It's Your Turn email has been sent to user."

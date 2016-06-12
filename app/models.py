@@ -12,9 +12,10 @@
 # annotations.  All actual persistence operations are
 # handled by classes in repositories.py.
 
-import sys
-sys.path.insert(1, '/usr/local/google_appengine')
-sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
+# had to add sys.path.inserts to get unit tests to work (tests not run in dev_appserver)
+# import sys
+# sys.path.insert(1, '/usr/local/google_appengine')
+# sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 
 from google.appengine.ext import ndb
 from random import randint

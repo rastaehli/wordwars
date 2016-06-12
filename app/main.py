@@ -4,14 +4,9 @@
 cronjobs."""
 import logging
 
-import sys
-sys.path.insert(1, '/usr/local/google_appengine/lib/webapp2-2.5.2')
-sys.path.insert(2, '/usr/local/google_appengine/lib/webob-1.2.3')
-sys.path.insert(3, '/usr/local/google_appengine')
-
 import webapp2
 from google.appengine.api import mail, app_identity
-from repositories import GameStateRepository
+from repositories import GameStateRepository, NotificationRepository
 
 from models import User, GameState
 

@@ -23,10 +23,11 @@ To run this game on your local machine:
 -- IMPORTANT: because most browsers block content from this unsecure deployment of the service you'll need to disable protection.  For Chrome on Mac OS X, launch Chrome with the following command:
 	Chrome: /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --user-data-dir=test --unsafely-treat-insecure-origin-as-secure=http://localhost:8080
 
-To execute tests from the test directory:
-- python letterbag_test.py  # unit test for LetterBag class
-- python gamestate_test.py  # unit test for main GameState model class
-- python gamerepository_test.py  # unit test for GameState persistence in DataStore
+To execute tests from the project root directory:
+- FIRST: uncomment the sys import lines at the top so python can find google libs.
+- python test/letterbag_test.py  # unit test for LetterBag class
+- python test/gamestate_test.py  # unit test for main GameState model class
+- python test/gamerepository_test.py  # unit test for GameState persistence in DataStore
 
 
 API
