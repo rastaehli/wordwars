@@ -25,7 +25,7 @@ class TurnNotification(webapp2.RequestHandler):
 
         # send email notification
         app_id = app_identity.get_application_id()
-        users = User.query(User.email not None)
+        users = User.query(User.email != None)
         for playerState in GameStateRepository().playersToNotify():
             user = playerState.player
             if user.email:
