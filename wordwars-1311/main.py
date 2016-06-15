@@ -4,10 +4,10 @@
 cronjobs."""
 import logging
 
-#import sys
-#sys.path.insert(1, '/usr/local/google_appengine/lib/webapp2-2.5.2')
-#sys.path.insert(2, '/usr/local/google_appengine/lib/webob-1.2.3')
-#sys.path.insert(3, '/usr/local/google_appengine')
+# import sys
+# sys.path.insert(1, '/usr/local/google_appengine/lib/webapp2-2.5.2')
+# sys.path.insert(2, '/usr/local/google_appengine/lib/webob-1.2.3')
+# sys.path.insert(3, '/usr/local/google_appengine')
 
 import webapp2
 from google.appengine.api import mail, app_identity
@@ -23,9 +23,9 @@ class TurnNotification(webapp2.RequestHandler):
         Record the notification so we don't annoy users with repeat email.
         Called every few minutes using a cron job.  See cron.yaml"""
 
-        #send email notification
+        # send email notification
         app_id = app_identity.get_application_id()
-        users = User.query(User.email != None)
+        users = User.query(User.email not None)
         for playerState in GameStateRepository().playersToNotify():
             user = playerState.player
             if user.email:
@@ -34,9 +34,9 @@ class TurnNotification(webapp2.RequestHandler):
                 subject = 'This is a reminder!'
                 body = 'Hello {}, its your turn to play WordWars!'.format(user.name)
                 mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),
-                           user.email,
-                           subject,
-                           body)
+                               user.email,
+                               subject,
+                               body)
 
 
 app = webapp2.WSGIApplication([

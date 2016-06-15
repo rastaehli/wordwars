@@ -24,8 +24,8 @@ EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
 
 @endpoints.api(name='wordwars', version='v1',
-    # grant access to ourselves and google's api_explorer also.
-    allowed_client_ids=['wordwars-1311', endpoints.API_EXPLORER_CLIENT_ID])
+               # grant access to ourselves and google's api_explorer also.
+               allowed_client_ids=['wordwars-1311', endpoints.API_EXPLORER_CLIENT_ID])
 class WordWarsApi(remote.Service):
     """Google endpoints API for WordWars game service."""
     def __init__(self):
@@ -33,7 +33,7 @@ class WordWarsApi(remote.Service):
         self.users = UserRepository()
         self.moves = MoveRepository()
 
-    @endpoints.method(request_message=endpoints.ResourceContainer( name=messages.StringField(1), email=messages.StringField(2) ),
+    @endpoints.method(request_message=endpoints.ResourceContainer(name=messages.StringField(1), email=messages.StringField(2)),
                       response_message=StringMessage,
                       path='user',
                       name='create_user',
@@ -49,16 +49,16 @@ class WordWarsApi(remote.Service):
         return StringMessage(message='User {} created!'.format(request.name))
 
     @endpoints.method(request_message=endpoints.ResourceContainer(user_name=messages.StringField(1)),
-                        response_message=StringList,
-                        path='user/{user_name}/games',
-                        name='get_user_games',
-                        http_method='GET')
+                      response_message=StringList,
+                      path='user/{user_name}/games',
+                      name='get_user_games',
+                      http_method='GET')
     def get_user_games(self, request):
         """Return id values for all games where this user is a player."""
         user = self.userByName(request.user_name)
         idList = []
         for p in PlayerStateRepository().findByUser(user):
-            idList.append( self.games.id( p.game ))
+            idList.append(self.games.id(p.game))
         gameIds = StringList()
         gameIds.strings = idList
         return gameIds
@@ -66,43 +66,43 @@ class WordWarsApi(remote.Service):
     def gameFormFrom(self, game, lastPlay):
         """Return game state, including identity of whose turn is next."""
         next = game.nextPlayer()
-        if next == None:
+        if next is None:
             return GameForm(
-                urlsafe_key = self.games.id(game),
-                board = game.board,
-                status = game.mode,
-                user_turn = 'None',
-                user_letters = '',
-                user_score = 0,
-                y0 = game.board[0:10],
-                y1 = game.board[10:20],
-                y2 = game.board[20:30],
-                y3 = game.board[30:40],
-                y4 = game.board[40:50],
-                y5 = game.board[50:60],
-                y6 = game.board[60:70],
-                y7 = game.board[70:80],
-                y8 = game.board[80:90],
-                y9 = game.board[90:100]
+                urlsafe_key=self.games.id(game),
+                board=game.board,
+                status=game.mode,
+                user_turn='None',
+                user_letters='',
+                user_score=0,
+                y0=game.board[0:10],
+                y1=game.board[10:20],
+                y2=game.board[20:30],
+                y3=game.board[30:40],
+                y4=game.board[40:50],
+                y5=game.board[50:60],
+                y6=game.board[60:70],
+                y7=game.board[70:80],
+                y8=game.board[80:90],
+                y9=game.board[90:100]
                 )
         else:
             return GameForm(
-                urlsafe_key = self.games.id(game),
-                board = game.board,
-                status = game.mode + ":  " + lastPlay,
-                user_turn = next.player.name,
-                user_letters = next.bag.asString(),
-                user_score = next.score,
-                y0 = game.board[0:10],
-                y1 = game.board[10:20],
-                y2 = game.board[20:30],
-                y3 = game.board[30:40],
-                y4 = game.board[40:50],
-                y5 = game.board[50:60],
-                y6 = game.board[60:70],
-                y7 = game.board[70:80],
-                y8 = game.board[80:90],
-                y9 = game.board[90:100]
+                urlsafe_key=self.games.id(game),
+                board=game.board,
+                status=game.mode + ":  " + lastPlay,
+                user_turn=next.player.name,
+                user_letters=next.bag.asString(),
+                user_score=next.score,
+                y0=game.board[0:10],
+                y1=game.board[10:20],
+                y2=game.board[20:30],
+                y3=game.board[30:40],
+                y4=game.board[40:50],
+                y5=game.board[50:60],
+                y6=game.board[60:70],
+                y7=game.board[70:80],
+                y8=game.board[80:90],
+                y9=game.board[90:100]
                 )
 
     @endpoints.method(request_message=endpoints.ResourceContainer(),
@@ -140,7 +140,7 @@ class WordWarsApi(remote.Service):
             raise endpoints.NotFoundException('User {} not found!'.format(name))
         return user
 
-    @endpoints.method(request_message=endpoints.ResourceContainer( gameid=messages.StringField(1), name=messages.StringField(2)),
+    @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1), name=messages.StringField(2)),
                       response_message=StringMessage,
                       path='game/{gameid}/add_user',
                       name='add_user',
@@ -155,7 +155,7 @@ class WordWarsApi(remote.Service):
         self.games.update(game)
         return StringMessage(message='User {} added!'.format(request.name))
 
-    @endpoints.method(request_message=endpoints.ResourceContainer( gameid=messages.StringField(1) ),
+    @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
                       response_message=GameForm,
                       path='game/{gameid}/start',
                       name='start_game',
@@ -183,7 +183,7 @@ class WordWarsApi(remote.Service):
         if game.cancelled():
             raise endpoints.BadRequestException('Game is already cancelled.')
 
-    @endpoints.method(request_message=endpoints.ResourceContainer( MakeMoveForm, gameid=messages.StringField(1) ),
+    @endpoints.method(request_message=endpoints.ResourceContainer(MakeMoveForm, gameid=messages.StringField(1)),
                       response_message=GameForm,
                       path='game/{gameid}/move',
                       name='make_move',
@@ -235,7 +235,7 @@ class WordWarsApi(remote.Service):
         nameList = []
         for u in self.users.all():
             nameList.append(u.name)
-        return StringList(strings = nameList)
+        return StringList(strings=nameList)
 
     @endpoints.method(request_message=endpoints.ResourceContainer(gameid=messages.StringField(1)),
                       response_message=StringMessage,
@@ -265,16 +265,16 @@ class WordWarsApi(remote.Service):
             wins[winner.name] += 1
             for p in game.players:
                 if p.player != winner:
-                    losses[p.player.name]+= 1
+                    losses[p.player.name] += 1
         records = []
         for userName in wins:
             records.append(WinLossRecord(
-                name = userName,
-                wins = wins[userName],
-                losses = losses[userName]))
+                name=userName,
+                wins=wins[userName],
+                losses=losses[userName]))
         return RankingList(
             # sort highest ratio first
-            rankings = sorted(
+            rankings=sorted(
                 records,
                 key=lambda record: record.wins/(1+record.losses),
                 reverse=True))
@@ -290,16 +290,16 @@ class WordWarsApi(remote.Service):
         moveList = []
         for move in self.moves.historyForGame(game):
             moveList.append(MoveRecord(
-                user_name = move.user.name,
-                x = move.x,
-                y = move.y,
-                across = move.across,
-                word = move.word,
-                moveScore = move.moveScore,
-                time = move.time))
+                user_name=move.user.name,
+                x=move.x,
+                y=move.y,
+                across=move.across,
+                word=move.word,
+                moveScore=move.moveScore,
+                time=move.time))
         # return sorted by time
         return MoveList(
-            moves = sorted(moveList, key=lambda move: move.time))
+            moves=sorted(moveList, key=lambda move: move.time))
 
 
 api = endpoints.api_server([WordWarsApi])

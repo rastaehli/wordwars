@@ -1,4 +1,3 @@
-
 """repositories.py - contains Repository class definitions that encapsulate the ndb persistence model.
 The Repository pattern is used.  For an ndb.Model m and EntityRepository MRepository, clients must:
     - call MRepository().register(m) to persist m and return its id value
@@ -109,19 +108,20 @@ class GameStateRepository():
         """Find players who've taken more than 5 minutes to play their turn.
         but filter out those who've already been notified."""
 
-        #get all games in play
+        # get all games in play
         activeGames = self.allActive()
-        #get those NOT updated in the last five minutes
+        # get those NOT updated in the last five minutes
         now = datetime.datetime.now()
         fiveMinutesAgo = now - datetime.timedelta(minutes=5)
         idleGames = [game for game in activeGames if (game.lastUpdate < fiveMinutesAgo)]
-        #get list of users whose turn it is
+        # get list of users whose turn it is
         playersUp = [game.nextPlayer() for game in idleGames]
-        #filter by those who have not been notified in the last day
+        # filter by those who have not been notified in the last day
         notifications = NotificationRepository()
         usersNotified = notifications.getUsersRecentlyNotified()
-        playersToNotify = [player for player in playersUp if not player.player.name in usersNotified]
+        playersToNotify = [player for player in playersUp if player.player.name not in usersNotified]
         return playersToNotify
+
 
 class PlayerStateRepository():
     """access persistent collection of PlayerState"""
@@ -162,14 +162,14 @@ class PlayerStateRepository():
 
     def findByGame(self, game):
         """return list of players in this game"""
-        list =  PlayerState.query(PlayerState.gameKey==game.key).fetch()
+        list = PlayerState.query(PlayerState.gameKey == game.key).fetch()
         for p in list:
             self.restoreTransients(p)
         return list
 
     def findByUser(self, user):
         """return list of game-player roles for this user"""
-        list =  PlayerState.query(PlayerState.userKey==user.key).fetch()
+        list = PlayerState.query(PlayerState.userKey == user.key).fetch()
         for p in list:
             self.restoreTransients(p)
         return list
@@ -200,7 +200,7 @@ class MoveRepository():
 
     def historyForGame(self, game):
         """return list of moves from this game"""
-        list =  Move.query(Move.gameKey==game.key).fetch()
+        list = Move.query(Move.gameKey == game.key).fetch()
         for move in list:
             move.game = game
             move.user = self.getPlayer(game, move)
@@ -217,6 +217,7 @@ class MoveRepository():
 # constants describing types of notifications.
 YOUR_TURN = 'your turn'
 
+
 class NotificationRepository():
     """Keep persistent collection of Notification emails sent."""
 
@@ -224,7 +225,7 @@ class NotificationRepository():
         "Return list of Users notified in the last 24 hours."
         now = datetime.datetime.now()
         yesterday = now - datetime.timedelta(days=1)
-        lastDaysNotes = Notification.query( Notification.createdTime > yesterday ).fetch()
+        lastDaysNotes = Notification.query(Notification.createdTime > yesterday).fetch()
         for note in lastDaysNotes:
             self.restoreTransients(note)
         return [note.user for note in lastDaysNotes]

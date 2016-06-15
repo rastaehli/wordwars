@@ -1,16 +1,19 @@
-"""ww_messages.py defines google app engine Message subclasses 
+"""ww_messages.py defines google app engine Message subclasses
 for the WordWars webapp api requests and responses."""
 
 from protorpc import messages
 from protorpc.message_types import DateTimeField
 
+
 class StringMessage(messages.Message):
     """Outbound (single) string message."""
     message = messages.StringField(1, required=True)
 
+
 class StringList(messages.Message):
     """Outbound list of string messages."""
     strings = messages.StringField(1, repeated=True)
+
 
 class GameForm(messages.Message):
     """Outbound description of game state."""
@@ -31,6 +34,7 @@ class GameForm(messages.Message):
     y8 = messages.StringField(15, required=True)
     y9 = messages.StringField(16, required=True)
 
+
 class MakeMoveForm(messages.Message):
     """Input fields to request a word be added at x,y, across/down, by user."""
     user_name = messages.StringField(1, required=True)
@@ -39,9 +43,11 @@ class MakeMoveForm(messages.Message):
     across = messages.BooleanField(4)
     word = messages.StringField(5, required=True)  # empty string means skip turn
 
+
 class IdForm(messages.Message):
     """Outbound id value for a persistent entity, such as game state."""
     urlsafe_key = messages.StringField(1, required=True)
+
 
 class WinLossRecord(messages.Message):
     """Outbound record of player wins and losses."""
@@ -49,9 +55,11 @@ class WinLossRecord(messages.Message):
     wins = messages.IntegerField(2, required=True)
     losses = messages.IntegerField(3, required=True)
 
+
 class RankingList(messages.Message):
     """Outbound list of WinLossRecord."""
     rankings = messages.MessageField(WinLossRecord, 1, repeated=True)
+
 
 class MoveRecord(messages.Message):
     """Outbound record of a word added at x,y, across/down, by user."""
@@ -59,9 +67,10 @@ class MoveRecord(messages.Message):
     x = messages.IntegerField(2)
     y = messages.IntegerField(3)
     across = messages.BooleanField(4)
-    word = messages.StringField(5, required=True)  #empty string if skipped turn
+    word = messages.StringField(5, required=True)  # empty string if skipped turn
     moveScore = messages.IntegerField(6, required=True)
     time = DateTimeField(7, required=True)
+
 
 class MoveList(messages.Message):
     """Outbound list of WinLossRecord."""

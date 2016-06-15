@@ -1,4 +1,3 @@
-
 """Domain model classes (mostly persistent)."""
 # Because this application requires both ndb.Model subclasses
 # to persist entities and domain objects that encapsulate
@@ -22,6 +21,7 @@ from random import randint
 from utils import get_by_urlsafe
 import datetime
 
+
 class User(ndb.Model):
     """Model of user that can play in a game."""
     # User may be a player in many games via one PlayerState for each GameState
@@ -42,23 +42,25 @@ class User(ndb.Model):
 
 # a few declarations to support GameState logic
 
-#simple set of all letters of the alphabet
+# simple set of all letters of the alphabet
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 
 # simple map from each letter to its scoring value when placed on the board
 letterValue = {'a': 1, 'b': 2, 'c': 2, 'd': 2, 'e': 1, 'f': 3, 'g': 3,
-        'h': 2, 'i': 1, 'j': 5, 'k': 3, 'l': 2, 'm': 1, 'n': 1, 'o': 1, 'p': 2,
-        'q': 5, 'r': 2, 's': 1, 't': 1, 'u': 2, 'v': 3, 'w': 3, 'x': 9, 'y': 5, 'z': 5}
+               'h': 2, 'i': 1, 'j': 5, 'k': 3, 'l': 2, 'm': 1, 'n': 1, 'o': 1, 'p': 2,
+               'q': 5, 'r': 2, 's': 1, 't': 1, 'u': 2, 'v': 3, 'w': 3, 'x': 9, 'y': 5, 'z': 5}
+
 
 # a poor algorithm for determining how many of each letter to put in inital bag
 def duplicates(l):
     return 10/letterValue[l]
 
-#Game state constant strings
-MODE_NEW='new'
-MODE_PLAYING='playing'
-MODE_CANCELLED='cancelled'
-MODE_OVER='over'
+# Game state constant strings
+MODE_NEW = 'new'
+MODE_PLAYING = 'playing'
+MODE_CANCELLED = 'cancelled'
+MODE_OVER = 'over'
+
 
 class GameState(ndb.Model):
     """Model of wordwars game state."""
@@ -95,8 +97,8 @@ class GameState(ndb.Model):
         if self.started():
             raise ValueError('Cannot add player to game in progress.')
         # okay to add players until started with first turn
-        playerSequence = len(self.players)  # zero for first player
-        lettersForPlayer = self.bagOfLetters.removeRandom(7) # init with 7 from game bag
+        playerSequence = len(self.players)   # zero for first player
+        lettersForPlayer = self.bagOfLetters.removeRandom(7)   # init with 7 from game bag
         pState = PlayerState.create(self, user, playerSequence, lettersForPlayer)
         self.players.append(pState)
 
@@ -170,9 +172,9 @@ class GameState(ndb.Model):
 
     def addLetterToBoard(self, playerState, x, y, letter):
         """Implement algorithm for adding single letter to the board."""
-        if self.letter(x,y) == '_':
+        if self.letter(x, y) == '_':
             playerState.bag.remove(letter)  # raises error if not there
-            self.setBoardContent(x,y,letter)
+            self.setBoardContent(x, y, letter)
         playerState.score = playerState.score + letterValue[letter]
 
     def skipTurn(self, user):
@@ -191,17 +193,17 @@ class GameState(ndb.Model):
         """Return True if game is over."""
         return self.mode == MODE_OVER
 
-    def boardIndex(self, x,y):
+    def boardIndex(self, x, y):
         i = x + (y * self.width)
         if i >= len(self.boardContent):
-            raise ValueError('cannot access board position ({},{})'.format(x,y))
+            raise ValueError('cannot access board position ({},{})'.format(x, y))
         return i
 
-    def letter(self, x,y):
-        return self.boardContent[ self.boardIndex(x,y) ]
+    def letter(self, x, y):
+        return self.boardContent[self.boardIndex(x, y)]
 
     def setBoardContent(self, x, y, letter):
-        self.boardContent[ self.boardIndex(x,y) ] = letter
+        self.boardContent[self.boardIndex(x, y)] = letter
 
     def leader(self):
         """Return PlayerState with current high score."""
@@ -307,7 +309,7 @@ class LetterBag():
         for i in range(count):
             if self.contentCount() <= 0:
                 return removed
-            l = self.removeByIndex(randint(0,selfSize-1))
+            l = self.removeByIndex(randint(0, selfSize - 1))
             selfSize -= 1
             removed.add(l)
         return removed
@@ -325,7 +327,7 @@ class LetterBag():
             if self.map[l] > lettersToGo:
                 return l                   # we are at the index we were looking for
             else:
-                lettersToGo -= self.map[l] # skip past this letter
+                lettersToGo -= self.map[l]   # skip past this letter
 
     def contentCount(self):
         """Return count of all letters in bag."""
