@@ -116,12 +116,12 @@ class GameStateRepository():
         fiveMinutesAgo = now - datetime.timedelta(minutes=5)
         idleGames = [game for game in activeGames if (game.lastUpdate < fiveMinutesAgo)]
         #get list of users whose turn it is
-        usersUp = [game.nextPlayer().player for game in idleGames]
+        playersUp = [game.nextPlayer() for game in idleGames]
         #filter by those who have not been notified in the last day
         notifications = NotificationRepository()
         usersNotified = notifications.getUsersRecentlyNotified()
-        usersToNotify = [user for user in usersUp if not user.name in usersNotified]
-        return usersToNotify
+        playersToNotify = [player for player in playersUp if not player.player.name in usersNotified]
+        return playersToNotify
 
 class PlayerStateRepository():
     """access persistent collection of PlayerState"""
@@ -221,10 +221,13 @@ class NotificationRepository():
     """Keep persistent collection of Notification emails sent."""
 
     def getUsersRecentlyNotified(self):
-        "Return list of users who have been sent email in the last 24 hours."
+        "Return list of Users notified in the last 24 hours."
         now = datetime.datetime.now()
         yesterday = now - datetime.timedelta(days=1)
-        return Notification.query( Notification.createdTime > yesterday ).fetch()
+        lastDaysNotes = Notification.query( Notification.createdTime > yesterday ).fetch()
+        for note in lastDaysNotes:
+            self.restoreTransients(note)
+        return [note.user for note in lastDaysNotes]
 
     def registerTurnNotification(self, user, game):
         "Register an It's Your Turn email has been sent to user."

@@ -23,20 +23,17 @@ class TurnNotification(webapp2.RequestHandler):
         Record the notification so we don't annoy users with repeat email.
         Called every few minutes using a cron job.  See cron.yaml"""
 
-        print('============in TurnNotification============')
-        usersToNotify = GameStateRepository().playersToNotify()
-        print('============len(usersToNotify)={}'.format(len(usersToNotify)))
-
         #send email notification
         app_id = app_identity.get_application_id()
         users = User.query(User.email != None)
-        for user in usersToNotify:
-            # remember notification so we don't harass the user repeatedly
-            notifications.registerTurnNotification(user, game)
-            subject = 'This is a reminder!'
-            body = 'Hello {}, its your turn to play WordWars!'.format(user.name)
-            print('=====sending email to {}'.format(user.name))
-            mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),
+        for playerState in GameStateRepository().playersToNotify():
+            user = playerState.player
+            if user.email:
+                # remember notification so we don't harass the user repeatedly
+                NotificationRepository().registerTurnNotification(user, playerState.game)
+                subject = 'This is a reminder!'
+                body = 'Hello {}, its your turn to play WordWars!'.format(user.name)
+                mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),
                            user.email,
                            subject,
                            body)
