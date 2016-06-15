@@ -1,5 +1,5 @@
 import sys
-sys.path.append('app')
+sys.path.append('wordwars-1311')
 
 from models import User, GameState, PlayerState, LetterBag
 from repositories import GameStateRepository
@@ -32,7 +32,7 @@ class Test():
 
   def tearDown(self):
     self.testbed.deactivate()
-        
+
   def assertTrue(self, booleanExpression, description):
     if not booleanExpression:
       raise ValueError("{} is not True".format(description))
@@ -55,7 +55,7 @@ class Test():
       p.bag = LetterBag.fromString('catgegae')
     game.start()
     self.assertTrue(game.leader().score == 0, "leader score==0")
-    
+
     repository.register(game)
     id = repository.id(game)
     self.assertTrue(id != None, 'registering with repository set game id')
@@ -72,4 +72,27 @@ class Test():
 
     self.tearDown()
 
+
+  def testPlayersToNotify(self):
+    self.setUp()
+
+    repository = GameStateRepository()
+
+    joe = User.create('joe', 'rastaehli@gmail.com')
+    rich = User.create('rich', 'rstaehli@acm.org')
+
+    game = GameState.create()
+    game.addPlayer(joe)
+    game.addPlayer(rich)
+    game.start()
+    repository.register(game)
+    id = repository.id(game)
+    # wait 5 minutes for game to be idle
+    notifyList = repository.playersToNotify()
+
+    self.assertTrue(len(notifyList) == 1, 'should notify joe after 5 minutes that it is his turn')
+
+    self.tearDown()
+
 t = Test().testShortGame()
+t = Test().testPlayersToNotify()

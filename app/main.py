@@ -4,6 +4,11 @@
 cronjobs."""
 import logging
 
+#import sys
+#sys.path.insert(1, '/usr/local/google_appengine/lib/webapp2-2.5.2')
+#sys.path.insert(2, '/usr/local/google_appengine/lib/webob-1.2.3')
+#sys.path.insert(3, '/usr/local/google_appengine')
+
 import webapp2
 from google.appengine.api import mail, app_identity
 from repositories import GameStateRepository, NotificationRepository
@@ -13,24 +18,14 @@ from models import User, GameState
 
 class TurnNotification(webapp2.RequestHandler):
     def get(self):
-        """Find users who've taken more than 5 minutes to play their turn.
-        Send a reminder email (only once) to each with instructions to play.
+        """Find users who need reminder to play their turn.
+        Send a reminder email to each with instructions to play.
+        Record the notification so we don't annoy users with repeat email.
         Called every few minutes using a cron job.  See cron.yaml"""
 
         print('============in TurnNotification============')
-        #get all games in play
-        activeGames = GameStateRepository().allActive()
-        #get those NOT updated in the last five minutes
-        idleGames = [game for game in activeGames
-            if (datetime.datetime.now - elem.lastUpdate).total_seconds() > 300]
-
-        #get list of users whose turn it is
-        usersUp = [game.nextPlayer().user for game in idleGames]
-
-        #filter by those who have not been notified in the last day
-        notifications = NotificationRepository()
-        usersNotified = notifications.getUsersRecentlyNotified()
-        usersToNotify = [user for user in usersUp if not user.name in usersNotified]
+        usersToNotify = GameStateRepository().playersToNotify()
+        print('============len(usersToNotify)={}'.format(len(usersToNotify)))
 
         #send email notification
         app_id = app_identity.get_application_id()

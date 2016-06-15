@@ -99,11 +99,29 @@ class GameStateRepository():
 
     def allActive(self):
         """Return all games in active state."""
-        all = GameState.query(GameState.mode == 'running').fetch()
+        all = GameState.query(GameState.mode == 'playing').fetch()
         for game in all:
             game.players = PlayerStateRepository().findByGame(game)
             self.restoreTransients(game)
         return all
+
+    def playersToNotify(self):
+        """Find players who've taken more than 5 minutes to play their turn.
+        but filter out those who've already been notified."""
+
+        #get all games in play
+        activeGames = self.allActive()
+        #get those NOT updated in the last five minutes
+        now = datetime.datetime.now()
+        fiveMinutesAgo = now - datetime.timedelta(minutes=5)
+        idleGames = [game for game in activeGames if (game.lastUpdate < fiveMinutesAgo)]
+        #get list of users whose turn it is
+        usersUp = [game.nextPlayer().player for game in idleGames]
+        #filter by those who have not been notified in the last day
+        notifications = NotificationRepository()
+        usersNotified = notifications.getUsersRecentlyNotified()
+        usersToNotify = [user for user in usersUp if not user.name in usersNotified]
+        return usersToNotify
 
 class PlayerStateRepository():
     """access persistent collection of PlayerState"""
