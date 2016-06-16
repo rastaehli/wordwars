@@ -152,11 +152,25 @@ class GameState(ndb.Model):
     def playWord(self, user, x, y, across, word):
         """Play word as instructed by user."""
         playerState = self.getPlayerState(user)
-        self.addWordToBoard(playerState, x, y, across, word)
-        lettersPlayed = 7 - playerState.bag.contentCount()
-        playerState.bag.addAll(self.bagOfLetters.removeRandom(lettersPlayed))
-        self.incrementTurn()
-        self.consecutivePasses = 0
+        beforeScore = playerState.score  # so we can reset on error
+        beforeLetters = playerState.bag.copy()
+        try:
+            self.addWordToBoard(playerState, x, y, across, word)
+            lettersPlayed = 7 - playerState.bag.contentCount()
+            if lettersPlayed < 1:
+                dir = 'across'
+                if not across:
+                    dir = 'down'
+                raise ValueError(
+                    'Playing {} {} at {},{} adds no letters to the board.'.format(word, dir, x, y))
+            playerState.bag.addAll(self.bagOfLetters.removeRandom(lettersPlayed))
+            self.incrementTurn()
+            self.consecutivePasses = 0
+        except Exception, e:
+            # reset state
+            playerState.score = beforeScore
+            playerState.bag = beforeLetters
+            raise e
 
     def addWordToBoard(self, playerState, x, y, across, word):
         """Implement algorithm for updating board and accumulating score."""
@@ -253,7 +267,6 @@ class Notification(ndb.Model):
     @classmethod
     def create(cls, game, user, description):
         """Class factory method to create a PlayerState."""
-        print('++++++++++++creating notification for {}'.format(user.name))
         note = cls()       # new instance of class
         note.game = game
         note.user = user
@@ -294,6 +307,7 @@ class LetterBag():
         """Add all letters from another bag to this bag."""
         for l in alphabet:
             self.map[l] += bag.map[l]
+        return self
 
     def remove(self, l):
         """Remove letter l from this bag."""
@@ -343,6 +357,10 @@ class LetterBag():
             for i in range(self.map[l]):
                 letters += l
         return letters
+
+    def copy(self):
+        """Return copy of this bag."""
+        return LetterBag().addAll(self)
 
     def __repr__(self):
         """Return string representation of my map."""

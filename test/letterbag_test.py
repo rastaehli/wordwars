@@ -1,5 +1,5 @@
 import sys
-sys.path.append('app')
+sys.path.append('wordwars-1311')
 
 from models import LetterBag
 
@@ -73,5 +73,3 @@ t.test_create_empty()
 t.test_simple_example()
 t.test_letterAtIndex()
 t.test_removeRandom()
-
-

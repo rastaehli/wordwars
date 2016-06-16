@@ -119,7 +119,15 @@ class GameStateRepository():
         # filter by those who have not been notified in the last day
         notifications = NotificationRepository()
         usersNotified = notifications.getUsersRecentlyNotified()
-        playersToNotify = [player for player in playersUp if player.player.name not in usersNotified]
+        playersToNotify = []
+        users = UserRepository()
+        for playerState in playersUp:
+            notify = True
+            for u in usersNotified:
+                if users.id(u) == users.id(playerState.player):
+                    notify = False
+            if notify:
+                playersToNotify.append(playerState)
         return playersToNotify
 
 
@@ -252,6 +260,6 @@ class NotificationRepository():
 
     def restoreTransients(self, note):
         """set (derive) transient values from persistent fields"""
-        note.note = note.gameKey.get()
+        note.game = note.gameKey.get()
         note.user = note.userKey.get()
         return note

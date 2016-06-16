@@ -1,5 +1,5 @@
 import sys
-sys.path.append('app')
+sys.path.append('wordwars-1311')
 
 from main import TurnNotification
 
