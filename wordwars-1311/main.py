@@ -30,13 +30,16 @@ class TurnNotification(webapp2.RequestHandler):
             user = playerState.player
             if user.email:
                 # remember notification so we don't harass the user repeatedly
-                NotificationRepository().registerTurnNotification(user, playerState.game)
+                NotificationRepository().registerTurnNotification(
+                    user, playerState.game)
                 subject = 'This is a reminder!'
-                body = 'Hello {}, its your turn to play WordWars!'.format(user.name)
-                mail.send_mail('noreply@{}.appspotmail.com'.format(app_id),
-                               user.email,
-                               subject,
-                               body)
+                body = 'Hello {}, its your turn to play WordWars!'.format(
+                    user.name)
+                mail.send_mail(
+                    'noreply@{}.appspotmail.com'.format(app_id),
+                    user.email,
+                    subject,
+                    body)
 
 
 app = webapp2.WSGIApplication([

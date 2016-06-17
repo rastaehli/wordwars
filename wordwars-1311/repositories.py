@@ -1,11 +1,15 @@
-"""repositories.py - contains Repository class definitions that encapsulate the ndb persistence model.
-The Repository pattern is used.  For an ndb.Model m and EntityRepository MRepository, clients must:
+"""repositories.py - contains Repository class definitions that encapsulate 
+the ndb persistence model.  The Repository pattern is used: 
+
+For an ndb.Model m and EntityRepository MRepository, clients must:
     - call MRepository().register(m) to persist m and return its id value
-    - call m = MRepository().findById( id ) to retrieve the entity by its id (from the register operation above)
-    - call MRepository().update(m) to save changes made to m (raises an error if m has not been registered)
+    - call m = MRepository().findById( id ) to retrieve the entity by its id 
+        (id defined in the register operation above)
+    - call MRepository().update(m) to save changes made to m (raises an error 
+        if m has not been registered)
 """
 
-# had to add sys.path.inserts to resolve imports when run from unit test (as opposed to dev_appserver)
+# have to add sys.path.inserts to resolve imports when run from unit test
 # import sys
 # sys.path.insert(1, '/usr/local/google_appengine')
 # sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
@@ -55,14 +59,14 @@ class GameStateRepository():
 
     def setPersistents(self, state):
         """set persistent fields from transient values"""
-        state.letters = state.bagOfLetters.asString()  # set persistent field from transient state
-        state.board = ''.join(state.boardContent)      # set persistent field from transient state
+        state.letters = state.bagOfLetters.asString()
+        state.board = ''.join(state.boardContent)
         return state
 
     def restoreTransients(self, state):
         """set transient values from persistent fields"""
         state.bagOfLetters = LetterBag.fromString(state.letters)
-        state.boardContent = list(state.board)    # easier to access content as a list
+        state.boardContent = list(state.board)  # list support random access
         return state
 
     def update(self, gameState):
@@ -106,29 +110,28 @@ class GameStateRepository():
 
     def playersToNotify(self):
         """Find players who've taken more than 5 minutes to play their turn.
-        but filter out those who've already been notified."""
-
-        # get all games in play
-        activeGames = self.allActive()
-        # get those NOT updated in the last five minutes
-        now = datetime.datetime.now()
-        fiveMinutesAgo = now - datetime.timedelta(minutes=5)
-        idleGames = [game for game in activeGames if (game.lastUpdate < fiveMinutesAgo)]
+        but filter out those who've already been notified.
+        Return PlayerState objects that include reference to game."""
+        idleGames = [game for game in self.allActive() if self.idle(game)]
         # get list of users whose turn it is
         playersUp = [game.nextPlayer() for game in idleGames]
-        # filter by those who have not been notified in the last day
-        notifications = NotificationRepository()
-        usersNotified = notifications.getUsersRecentlyNotified()
-        playersToNotify = []
+        # filter out those who have alread been notified in the last day
+        skipList = NotificationRepository().getUsersRecentlyNotified()
+        return [p for p in playersUp if self.notify(p.player, skipList)]
+
+    def notify(self, user, skipList):
+        """notify if user is not in skipList"""
         users = UserRepository()
-        for playerState in playersUp:
-            notify = True
-            for u in usersNotified:
-                if users.id(u) == users.id(playerState.player):
-                    notify = False
-            if notify:
-                playersToNotify.append(playerState)
-        return playersToNotify
+        for u in skipList:
+            if users.id(u) == users.id(user):
+                return False  # user found in skipList
+        return True  # not found
+
+    def idle(self, game):
+        # idle if NOT updated in the last five minutes
+        now = datetime.datetime.now()
+        fiveMinutesAgo = now - datetime.timedelta(minutes=5)
+        return game.lastUpdate < fiveMinutesAgo
 
 
 class PlayerStateRepository():
@@ -233,7 +236,8 @@ class NotificationRepository():
         "Return list of Users notified in the last 24 hours."
         now = datetime.datetime.now()
         yesterday = now - datetime.timedelta(days=1)
-        lastDaysNotes = Notification.query(Notification.createdTime > yesterday).fetch()
+        lastDaysNotes = Notification.query(
+            Notification.createdTime > yesterday).fetch()
         for note in lastDaysNotes:
             self.restoreTransients(note)
         return [note.user for note in lastDaysNotes]

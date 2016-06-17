@@ -36,7 +36,9 @@ class Test():
     game.skipTurn(steve)
     v.showGameState(game)
     self.assertTrue(game.gameOver(), "game is over")
-    self.assertTrue(game.leader().player.name == 'steve', "steve is the winner")
+    self.assertTrue(
+        game.leader().player.name == 'steve',
+        "steve is the winner")
     self.assertTrue(game.leader().score == 13, "winner score is 13")
 
   def testScoreOnlyWhenAddingLetters(self):
@@ -53,10 +55,16 @@ class Test():
     self.assertTrue(game.scoreForUser(joe) == 4, "score for cat is 4")
     try:
         game.playWord(steve,0,0,True,'cat')
-        self.assertTrue(False, 'playing word already played should raise exception')
+        self.assertTrue(
+            False,
+            'playing word already played should raise exception')
     except ValueError, e:
-        self.assertTrue(True, 'playing word already played raised error: {}'.format(e))
+        self.assertTrue(
+            True,
+            'playing word already played raised error: {}'.format(e))
     game.playWord(steve,0,0,False,'cage')
-    self.assertTrue(game.scoreForUser(steve) == 7, "score for adding cage (reusing the c) is 7")
+    self.assertTrue(
+        game.scoreForUser(steve) == 7,
+        "score for adding cage (reusing the c) is 7")
 
 t = Test().testScoreOnlyWhenAddingLetters()

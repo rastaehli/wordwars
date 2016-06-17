@@ -36,12 +36,13 @@ class GameForm(messages.Message):
 
 
 class MakeMoveForm(messages.Message):
-    """Input fields to request a word be added at x,y, across/down, by user."""
+    """Input to request a word be added at x,y, across/down, by user."""
     user_name = messages.StringField(1, required=True)
     x = messages.IntegerField(2)  # if x, y, or across are missing, skip turn
     y = messages.IntegerField(3)
     across = messages.BooleanField(4)
-    word = messages.StringField(5, required=True)  # empty string means skip turn
+    # empty word allowed.  It means skip turn
+    word = messages.StringField(5, required=True)
 
 
 class IdForm(messages.Message):
@@ -67,7 +68,7 @@ class MoveRecord(messages.Message):
     x = messages.IntegerField(2)
     y = messages.IntegerField(3)
     across = messages.BooleanField(4)
-    word = messages.StringField(5, required=True)  # empty string if skipped turn
+    word = messages.StringField(5, required=True)  # empty if skipped turn
     moveScore = messages.IntegerField(6, required=True)
     time = DateTimeField(7, required=True)
 

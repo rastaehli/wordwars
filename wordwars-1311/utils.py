@@ -1,11 +1,12 @@
 """utils.py - File for collecting general utility functions."""
+
+# have to do these sys.path.inserts when running unit tests that call utils.py
 # import sys
 # sys.path.insert(1, '/usr/local/google_appengine')
 # sys.path.insert(1, '/usr/local/google_appengine/lib/endpoints-1.0')
 # sys.path.insert(1, '/usr/local/google_appengine/lib/protorpc-1.0')
 # sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 
-import logging
 from google.appengine.ext import ndb
 import endpoints
 

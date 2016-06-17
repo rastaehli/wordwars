@@ -90,7 +90,9 @@ class Test():
     # wait 5 minutes for game to be idle
     notifyList = repository.playersToNotify()
 
-    self.assertTrue(len(notifyList) == 1, 'should notify joe after 5 minutes that it is his turn')
+    self.assertTrue(
+        len(notifyList) == 1,
+        'should notify joe after 5 minutes that it is his turn')
 
     self.tearDown()
 
