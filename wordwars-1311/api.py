@@ -36,18 +36,18 @@ from messages import (
     RankingList,
     MoveList,
     MoveRecord
+)
 
 EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
-NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
 GAME_ID_REQUEST = endpoints.ResourceContainer(gameid=messages.StringField(1))
 MAKE_MOVE_REQUEST = endpoints.ResourceContainer(
     MakeMoveForm, gameid=messages.StringField(1))
 NEW_USER_REQUEST = endpoints.ResourceContainer(
-    name=messages.StringField(1), email=messages.StringField(2))
-USERNAME_REQUEST = endpoints.ResourceContainer(name=messages.StringField(1))
+    user_name=messages.StringField(1), email=messages.StringField(2))
+USERNAME_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1))
 ADD_USER_REQUEST = endpoints.ResourceContainer(
-    gameid=messages.StringField(1), name=messages.StringField(2)
+    gameid=messages.StringField(1), user_name=messages.StringField(2))
 PLAIN_REQUEST = endpoints.ResourceContainer()
 
 
@@ -65,22 +65,22 @@ class WordWarsApi(remote.Service):
         self.users = UserRepository()
         self.moves = MoveRepository()
 
-    @endpoints.method(request_message=USER_REQUEST,
+    @endpoints.method(request_message=NEW_USER_REQUEST,
                       response_message=StringMessage,
                       path='user',
                       name='create_user',
                       http_method='POST')
     def create_user(self, request):
         """Create a User. Requires a unique username"""
-        if self.users.findByName(request.name):
+        if self.users.findByName(request.user_name):
             raise endpoints.ConflictException(
                 'A User with that name already exists!')
         if not EMAIL_REGEX.match(request.email):
             raise endpoints.BadRequestException(
                 'Email address is not valid: {}'.format(request.email))
-        user = User.create(request.name, request.email)
+        user = User.create(request.user_name, request.email)
         self.users.register(user)
-        return StringMessage(message='User {} created!'.format(request.name))
+        return StringMessage(message='User {} created!'.format(request.user_name))
 
     @endpoints.method(request_message=USERNAME_REQUEST,
                       response_message=StringList,
@@ -121,7 +121,7 @@ class WordWarsApi(remote.Service):
         game = self.gameById(request.gameid)
         return self.gameFormFrom(game, '')
 
-    @endpoints.method(request_message=ADD_USER_REQUEST),
+    @endpoints.method(request_message=ADD_USER_REQUEST,
                       response_message=StringMessage,
                       path='game/{gameid}/add_user',
                       name='add_user',
@@ -132,10 +132,10 @@ class WordWarsApi(remote.Service):
         if game.started():
             raise endpoints.BadRequestException(
                 'Can''t add user after game is started.')
-        user = self.userByName(request.name)
+        user = self.userByName(request.user_name)
         game.addPlayer(user)
         self.games.update(game)
-        return StringMessage(message='User {} added!'.format(request.name))
+        return StringMessage(message='User {} added!'.format(request.user_name))
 
     @endpoints.method(request_message=GAME_ID_REQUEST,
                       response_message=GameForm,
@@ -330,8 +330,7 @@ class WordWarsApi(remote.Service):
         if total <= 0:
             lastPlay = ''
         else:
-            lastPlay = 'You added {} for a total score of {}.'
-                .format(added, total)
+            lastPlay = 'You added {} for a total score of {}.'.format(added, total)
         if added > 5:
             lastPlay = 'Good job!  '+lastPlay
         return lastPlay
