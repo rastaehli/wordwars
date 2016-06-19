@@ -119,7 +119,7 @@ API
 	already over.  Raises BadRequestException if 'word' cannot be played 
 	at that position.
 
- - **get_user_games**
+- **get_user_games**
 	- Description: Get id values for all active games where 'user_name' is a
 	player.
 	- Path: 'user/{user_name}/games'
@@ -128,7 +128,7 @@ API
 	- Returns: List of gameid values.
 	- Exceptions: Raises NotFoundException if no user found for user_name.
     
- - **cancel_game**
+- **cancel_game**
 	- Description: Cancel a game so it does not count in user rankings.
 	- Path: 'game/{gameid}/cancel'
 	- Method: PUT
@@ -136,7 +136,7 @@ API
 	- Returns: Message confirming game is cancelled.
 	- Exceptions: Raises NotFoundException if no game found for gameid.
 
- - **get_all_users**
+- **get_all_users**
 	- Description: Return list of registered user_name values.
 	- Path: 'user/all'
 	- Method: GET
@@ -144,7 +144,7 @@ API
 	- Returns: Message with list of user_name values.
 	- Exceptions: <none>
  
- - **get_user_rankings**
+- **get_user_rankings**
 	- Description: Return ranking of each player by win/loss ratio.
 	- Path: 'user/rankings'
 	- Method: GET
@@ -155,7 +155,7 @@ API
 	sorted highest win/loss ratio first.
 	- Exceptions: <none>
  
- - **get_game_history**
+- **get_game_history**
 	- Description: Show ordered sequence of moves for a game.
 	- Path: 'game/{gameid}/history'
 	- Method: GET
