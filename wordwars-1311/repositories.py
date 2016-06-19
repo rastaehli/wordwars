@@ -15,7 +15,6 @@ For an ndb.Model m and EntityRepository MRepository, clients must:
 # sys.path.insert(1, '/usr/local/google_appengine/lib/yaml/lib')
 
 from google.appengine.ext import ndb
-from random import randint
 from utils import get_by_urlsafe
 from models import User, GameState, PlayerState, LetterBag, Move, Notification
 import datetime

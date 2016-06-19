@@ -160,7 +160,7 @@ class GameState(ndb.Model):
         try:
             self.addWordToBoard(playerState, x, y, across, word)
             lettersPlayed = 7 - playerState.bag.contentCount()
-            self.enforceMinimumOneLetterRule(lettersPlayed)
+            self.enforceMinimumOneLetter(lettersPlayed, x, y, across, word)
             playerState.bag.addAll(
                 self.bagOfLetters.removeRandom(lettersPlayed))
             self.incrementTurn()
@@ -171,7 +171,7 @@ class GameState(ndb.Model):
             playerState.bag = beforeLetters
             raise e
 
-    def enforceMinimumOneLetterRule(self, lettersPlayed):
+    def enforceMinimumOneLetter(self, lettersPlayed, x, y, across, word):
         if lettersPlayed < 1:
             dir = 'across'
             if not across:

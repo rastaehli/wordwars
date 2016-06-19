@@ -1,13 +1,7 @@
 #!/usr/bin/env python
-
 """main.py - This file contains handlers that are called by taskqueue and/or
 cronjobs."""
-import logging
 
-# import sys
-# sys.path.insert(1, '/usr/local/google_appengine/lib/webapp2-2.5.2')
-# sys.path.insert(2, '/usr/local/google_appengine/lib/webob-1.2.3')
-# sys.path.insert(3, '/usr/local/google_appengine')
 
 import webapp2
 from google.appengine.api import mail, app_identity
@@ -21,7 +15,9 @@ class TurnNotification(webapp2.RequestHandler):
         """Find users who need reminder to play their turn.
         Send a reminder email to each with instructions to play.
         Record the notification so we don't annoy users with repeat email.
-        Called every few minutes using a cron job.  See cron.yaml"""
+        Called every few minutes using a cron job.  See cron.yaml.
+        TODO: consider holding notifications for users that indicate they
+        do not want to be bothered, at night time for example."""
 
         # send email notification
         app_id = app_identity.get_application_id()
