@@ -17,7 +17,7 @@ class StringList(messages.Message):
 
 class GameForm(messages.Message):
     """Outbound description of game state."""
-    urlsafe_key = messages.StringField(1, required=True)
+    gameid = messages.StringField(1, required=True)
     board = messages.StringField(2, required=True)
     status = messages.StringField(3, required=True)
     user_turn = messages.StringField(4, required=True)

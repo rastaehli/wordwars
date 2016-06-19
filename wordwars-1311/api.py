@@ -179,9 +179,9 @@ class WordWarsApi(remote.Service):
         else:
             try:
                 game.playWord(user, x, y, across, word)
-            except Exception:
+            except Exception, e:
                 raise endpoints.BadRequestException(
-                    'Cannot play {} at {},{}'.format(word, x, y))
+                    'Illegal move: {}'.format(e.message))
         scoreAfter = game.scoreForUser(user)
         playScore = scoreAfter - scoreBefore
         self.games.update(game)
@@ -193,7 +193,7 @@ class WordWarsApi(remote.Service):
 
     @endpoints.method(request_message=PLAIN_REQUEST,
                       response_message=StringList,
-                      path='users',
+                      path='user/all',
                       name='get_all_users',
                       http_method='GET')
     def get_all_users(self, request):
@@ -205,14 +205,15 @@ class WordWarsApi(remote.Service):
 
     @endpoints.method(request_message=GAME_ID_REQUEST,
                       response_message=StringMessage,
-                      path='game/{gameid}',
+                      path='game/{gameid}/cancel',
                       name='cancel_game',
-                      http_method='POST')
+                      http_method='PUT')
     def cancel_game(self, request):
         """Mark game as cancelled, with no winner."""
         game = self.gameById(request.gameid)
         game.cancel()
-        return StringMessage('Game is cancelled.')
+        self.games.update(game)
+        return StringMessage(message='Game is cancelled.')
 
     @endpoints.method(request_message=PLAIN_REQUEST,
                       response_message=RankingList,
@@ -274,7 +275,7 @@ class WordWarsApi(remote.Service):
         next = game.nextPlayer()
         if next is None:
             return GameForm(
-                urlsafe_key=self.games.id(game),
+                gameid=self.games.id(game),
                 board=game.board,
                 status=game.mode,
                 user_turn='None',
@@ -293,7 +294,7 @@ class WordWarsApi(remote.Service):
                 )
         else:
             return GameForm(
-                urlsafe_key=self.games.id(game),
+                gameid=self.games.id(game),
                 board=game.board,
                 status=game.mode + ":  " + lastPlay,
                 user_turn=next.player.name,
